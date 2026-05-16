@@ -159,3 +159,44 @@ def compact_history(attempts_df: pd.DataFrame, limit: int) -> str:
             f"search_gap={gap} | selection_score={score} | error={err}"
         )
     return "\n".join(lines)
+
+
+def historical_family_avoidance_block(objective_mode: str) -> str:
+    """Objective-aware historical avoid-family prompt from previous artifact analysis."""
+    objective_mode = objective_mode.lower().strip()
+    header = (
+        "Historical family memory from previous clustering runs:\n"
+        "The following mechanism families were repeatedly observed in older Run A/B/C artifacts. "
+        "Use this as prior context, not as a hard ban. Avoid weak or stagnant families as minor variants, "
+        "but preserve/refine historically strong families if the selected parent genuinely belongs to one. "
+        "Do not merely add words such as enhanced, adaptive, hybrid, momentum, regularized, improved, or V2 "
+        "while keeping the same main mechanism."
+    )
+    if objective_mode == "sse":
+        body = (
+            "For Run A / SSE: avoid algorithms whose main mechanism is continuous gradient-style center "
+            "movement, pseudo-gradient descent, momentum, adaptive learning rates, or regularization. "
+            "Historically strong families are not banned: spread/farthest-first initialization with bounded "
+            "SSE-compatible Lloyd-style refinement may still be refined."
+        )
+    elif objective_mode == "pmedian":
+        body = (
+            "For Run B / p-median: avoid generic random medoid replacement, random swapping, exhaustive "
+            "all-point swap searches, vague iterative replacement strategies, and free-center k-means drift. "
+            "Final centers must remain selected data points. Historically strong families are not banned: "
+            "selected-point contribution / uncovered-demand construction may still be refined if it appears "
+            "naturally in the selected parent."
+        )
+    elif objective_mode == "radius":
+        body = (
+            "For Run C / radius-volume: avoid generic VolumeCoveringHeuristic variants that only rename the "
+            "same nearest-center assignment plus small radius-based center movement. Structural novelty should "
+            "change active-center usage, high-radius cluster split/repair, and d=3/d=4 radius control."
+        )
+    else:
+        body = "Avoid historically repeated weak families and prefer structural novelty."
+    closing = (
+        "Your next heuristic should make a structural change in the main center-construction mechanism unless "
+        "the selected parent is already from a strong/improving family. Do not merely rename or decorate a weak family."
+    )
+    return "\n".join([header, "", body, "", closing])

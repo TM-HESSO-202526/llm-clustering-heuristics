@@ -1416,6 +1416,76 @@ def objective_family_novelty_note(objective_mode):
     return "Structural novelty means changing the main construction mechanism, not only renaming or tuning constants."
 
 
+
+
+def historical_family_avoidance_block(objective_mode):
+    """Return a static historical family-memory block built from previous artifact analysis.
+
+    This block is objective-aware but objective-neutral in the sense that it does not force
+    a target family such as p-median nucleation. It warns against historically repeated weak
+    families while explicitly preserving historically strong/improving families.
+    """
+    if not bool(CFG.get("historical_family_avoidance", False)):
+        return ""
+
+    common_header = (
+        "Historical family memory from previous clustering runs:\n"
+        "The following mechanism families were repeatedly observed in older Run A/B/C artifacts. "
+        "Use this as prior context, not as a hard ban. Avoid weak or stagnant families as minor variants, "
+        "but preserve/refine historically strong families if the selected parent genuinely belongs to one. "
+        "Do not merely add words such as enhanced, adaptive, hybrid, momentum, regularized, improved, or V2 "
+        "while keeping the same main mechanism."
+    )
+
+    sse = (
+        "For Run A / SSE: avoid algorithms whose main mechanism is continuous gradient-style center "
+        "movement, pseudo-gradient descent, momentum, adaptive learning rates, or regularization. Previous "
+        "runs repeatedly produced Randomized/Adaptive Gradient Descent variants, and these were much weaker "
+        "than spread-based constructive initialization followed by bounded SSE-compatible refinement. Also "
+        "avoid plain random k-means/Lloyd variants that do not use a strong constructive spread or farthest-first "
+        "initialization. Historically strong families are not banned: spread/farthest-first initialization with "
+        "bounded SSE-compatible Lloyd-style refinement may still be refined."
+    )
+
+    pmedian = (
+        "For Run B / p-median: avoid generic random medoid replacement, random swapping, exhaustive all-point "
+        "swap searches, and vague iterative replacement strategies. These families were repeatedly generated "
+        "and gave weak search/probe behavior. Also avoid free-center k-means drift: do not move centers as "
+        "centroids, do not use Lloyd-style centroid updates, and do not optimize squared-distance SSE behavior. "
+        "Final centers must remain selected data points. Farthest-first medoid selection alone is also not enough "
+        "if it is not combined with a meaningful contribution-aware selected-point construction or bounded "
+        "replacement rule. Historically strong families are not banned: selected-point contribution / uncovered-demand "
+        "construction may still be refined if it appears naturally in the selected parent."
+    )
+
+    radius = (
+        "For Run C / radius-volume: avoid generating another generic VolumeCoveringHeuristic / ImprovedVolumeCoveringHeuristic "
+        "/ EnhancedVolumeCoveringHeuristic if the mechanism is only nearest-center assignment plus small "
+        "radius-based center movement. Previous runs often repeated this family without solving high-dimensional "
+        "probe failures. For this objective, structural novelty should change how active centers are used, how "
+        "high-radius clusters are split/repaired, and how the method controls radii in d=3 and d=4, not just rename "
+        "the same volume-covering loop. Avoid recursive partitioning schemes that can recurse too deeply, waste "
+        "centers, or create empty-center behavior. Historically strong radius-aware active-center methods are not "
+        "banned if they genuinely improve probe behavior, especially in d=3 and d=4."
+    )
+
+    mode = str(objective_mode).lower().strip()
+    if mode == "sse":
+        body = sse
+    elif mode == "pmedian":
+        body = pmedian
+    elif mode == "radius":
+        body = radius
+    else:
+        body = "Avoid historically repeated weak families and prefer a structural change in the main construction mechanism."
+
+    closing = (
+        "Your next heuristic should make a structural change in the main center-construction mechanism unless "
+        "the selected parent is already from a strong/improving family. Do not merely rename or decorate a weak family."
+    )
+    return "\n".join([common_header, "", body, "", closing])
+
+
 def build_family_memory_block(attempts_df, parent=None):
     """Build the optional LLM-visible family-memory block.
 
@@ -1575,7 +1645,14 @@ def build_prompt(iteration, attempts_df):
     parent, reason = select_parent(attempts_df)
 
     if parent is None:
-        user = BASE_TASK_PROMPT + "\n\nGenerate the first heuristic for this active objective now."
+        historical_memory = historical_family_avoidance_block(OBJECTIVE_MODE)
+        user = f"""
+{BASE_TASK_PROMPT}
+
+{historical_memory}
+
+Generate the first heuristic for this active objective now.
+""".strip()
         return [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}], None, reason
 
     parent_is_valid = bool(parent.get("valid", False))
@@ -1626,6 +1703,7 @@ def build_prompt(iteration, attempts_df):
         "invalid_redesign_mode": bool(invalid_redesign_mode),
     }
 
+    historical_memory = historical_family_avoidance_block(OBJECTIVE_MODE)
     family_memory = build_family_memory_block(attempts_df, parent=parent)
 
     strategy = normalized_selection_strategy()
@@ -1636,6 +1714,8 @@ def build_prompt(iteration, attempts_df):
 {BASE_TASK_PROMPT}
 
 {instruction}
+
+{historical_memory}
 
 {family_memory}
 
@@ -1697,6 +1777,8 @@ Return the answer in the required # Name / # Code format.
 Previously generated heuristics for this active objective:
 {compact_history(attempts_df, int(CFG["history_limit"]))}
 
+{historical_memory}
+
 {family_memory}
 
 {instruction}
@@ -1728,6 +1810,7 @@ Return the answer in the required # Name / # Code format.
 
 print("Unified prompt builder ready for objective:", OBJECTIVE_MODE)
 print("Selection strategy:", normalized_selection_strategy())
+print("Historical family avoidance:", CFG.get("historical_family_avoidance", False))
 print("Family novelty mode:", CFG.get("family_novelty_mode", False), "| memory limit:", CFG.get("family_memory_limit", 8), "| weak threshold:", CFG.get("weak_family_score_threshold", 20.0), "| allow strong exploitation:", CFG.get("allow_strong_family_exploitation", True))
 print("Invalid-parent redesign:", CFG.get("invalid_parent_redesign"), "| any-invalid:", CFG.get("redesign_on_any_invalid_before_full_valid"), "| timeout:", CFG.get("redesign_on_timeout_parent"), "| expose-invalid-code:", not CFG.get("hide_invalid_parent_code", False))
 print("\n--- Objective prompt excerpt ---")

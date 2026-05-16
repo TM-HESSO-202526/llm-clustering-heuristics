@@ -92,9 +92,13 @@ def build_runtime_config_from_notebook_globals(
     cfg["selection_strategy"] = str(_require(notebook_globals, "SELECTION_STRATEGY"))
     cfg["history_limit"] = int(_require(notebook_globals, "HISTORY_LIMIT"))
 
-    # Family novelty memory. This is objective-neutral and summarizes weak/stagnant
-    # mechanism families already explored in the current run. It does not force
-    # any specific target family.
+    # Historical family avoidance is a static objective-aware memory extracted from
+    # previous artifact analysis. It warns against historically repeated weak families
+    # but does not force a specific target family.
+    cfg["historical_family_avoidance"] = bool(notebook_globals.get("HISTORICAL_FAMILY_AVOIDANCE", False))
+
+    # Family novelty memory summarizes weak/stagnant mechanism families already
+    # explored in the current run. It does not force any specific target family.
     cfg["family_novelty_mode"] = bool(notebook_globals.get("FAMILY_NOVELTY_MODE", False))
     cfg["family_memory_limit"] = int(notebook_globals.get("FAMILY_MEMORY_LIMIT", 8))
     cfg["weak_family_score_threshold"] = float(notebook_globals.get("WEAK_FAMILY_SCORE_THRESHOLD", 20.0))
@@ -162,6 +166,7 @@ def build_runtime_config_from_notebook_globals(
         "temperature": cfg["temperature"],
         "top_p": cfg["top_p"],
         "selection_strategy": cfg["selection_strategy"],
+        "historical_family_avoidance": cfg.get("historical_family_avoidance", False),
         "family_novelty_mode": cfg.get("family_novelty_mode", False),
         "family_memory_limit": cfg.get("family_memory_limit", 8),
         "weak_family_score_threshold": cfg.get("weak_family_score_threshold", 20.0),

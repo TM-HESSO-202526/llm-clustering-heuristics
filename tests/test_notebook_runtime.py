@@ -26,6 +26,7 @@ def _base_globals(tmp_path: Path, smoke_test: bool = True):
         "MAX_REQUEST_ERROR_RETRIES": 5,
         "SELECTION_STRATEGY": "1+1",
         "HISTORY_LIMIT": 20,
+        "HISTORICAL_FAMILY_AVOIDANCE": True,
         "FAMILY_NOVELTY_MODE": True,
         "FAMILY_MEMORY_LIMIT": 8,
         "WEAK_FAMILY_SCORE_THRESHOLD": 20.0,
@@ -66,6 +67,7 @@ def test_build_runtime_config_smoke_test_forces_one_attempt(tmp_path):
     assert written["max_total_attempts"] == 1
     assert written["model"] == "llama-3.3-70b-versatile"
     assert written["hide_invalid_parent_code"] is False
+    assert written["historical_family_avoidance"] is True
     assert written["family_novelty_mode"] is True
     assert written["family_memory_limit"] == 8
     assert written["weak_family_score_threshold"] == 20.0
