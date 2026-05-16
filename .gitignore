@@ -26,3 +26,6 @@ llm_clustering_unified_ABC_*/
 # !data/raw/.gitkeep
 # data/processed/*
 # !data/processed/.gitkeep
+
+*.egg-info/
+src/*.egg-info/
