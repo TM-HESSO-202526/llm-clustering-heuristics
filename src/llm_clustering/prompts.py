@@ -50,6 +50,8 @@ Use vectorized numpy operations where possible and keep all iterative procedures
 
 Implementation detail for p-median initialization:
 Use min_dist for Euclidean distances.
+For p-median initialization, maintain an array min_dist of shape (n,),
+where min_dist[i] is the Euclidean distance from X[i] to its nearest selected center.
 Do not optimize squared distances internally for the p-median objective.
 """.strip()
 
