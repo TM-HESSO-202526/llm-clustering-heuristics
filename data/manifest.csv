@@ -1,0 +1,16 @@
+instance_name,path,n,p,d,instance_id,source,split_note
+cluster_tai00400_020_2_0,data/raw/cluster_tai00400_020_2_0.csv,400,20,2,0,taillard_synthetic,main_2d_benchmark
+cluster_tai00400_020_2_1,data/raw/cluster_tai00400_020_2_1.csv,400,20,2,1,taillard_synthetic,main_2d_benchmark
+cluster_tai00400_020_2_2,data/raw/cluster_tai00400_020_2_2.csv,400,20,2,2,taillard_synthetic,main_2d_benchmark
+cluster_tai00400_020_2_3,data/raw/cluster_tai00400_020_2_3.csv,400,20,2,3,taillard_synthetic,main_2d_benchmark
+cluster_tai00400_020_2_4,data/raw/cluster_tai00400_020_2_4.csv,400,20,2,4,taillard_synthetic,main_2d_benchmark
+cluster_tai01600_040_2_0,data/raw/cluster_tai01600_040_2_0.csv,1600,40,2,0,taillard_synthetic,main_2d_benchmark
+cluster_tai01600_040_2_1,data/raw/cluster_tai01600_040_2_1.csv,1600,40,2,1,taillard_synthetic,main_2d_benchmark
+cluster_tai01600_040_2_2,data/raw/cluster_tai01600_040_2_2.csv,1600,40,2,2,taillard_synthetic,main_2d_benchmark
+cluster_tai01600_040_2_3,data/raw/cluster_tai01600_040_2_3.csv,1600,40,2,3,taillard_synthetic,main_2d_benchmark
+cluster_tai01600_040_2_4,data/raw/cluster_tai01600_040_2_4.csv,1600,40,2,4,taillard_synthetic,main_2d_benchmark
+cluster_tai04900_070_2_0,data/raw/cluster_tai04900_070_2_0.csv,4900,70,2,0,taillard_synthetic,main_2d_benchmark
+cluster_tai04900_070_2_1,data/raw/cluster_tai04900_070_2_1.csv,4900,70,2,1,taillard_synthetic,main_2d_benchmark
+cluster_tai04900_070_2_2,data/raw/cluster_tai04900_070_2_2.csv,4900,70,2,2,taillard_synthetic,main_2d_benchmark
+cluster_tai04900_070_2_3,data/raw/cluster_tai04900_070_2_3.csv,4900,70,2,3,taillard_synthetic,main_2d_benchmark
+cluster_tai04900_070_2_4,data/raw/cluster_tai04900_070_2_4.csv,4900,70,2,4,taillard_synthetic,main_2d_benchmark

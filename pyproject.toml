@@ -1,0 +1,15 @@
+[project]
+name = "llm-clustering-heuristics"
+version = "0.1.0"
+description = "Colab-first framework for LLM-generated constructive clustering heuristics."
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "requests>=2.31",
+    "PyYAML>=6.0",
+    "ipython>=8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

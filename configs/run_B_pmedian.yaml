@@ -1,0 +1,72 @@
+allow_refinement: true
+selection_strategy: 1+1
+numpy_only: true
+invalid_parent_redesign: true
+redesign_on_any_invalid_before_full_valid: true
+redesign_on_timeout_parent: true
+hide_invalid_parent_code: false
+provider: groq
+model: llama-3.3-70b-versatile
+temperature: 0.8
+top_p: 1.0
+groq_key_prefix: GROQ_API_KEY_
+groq_max_keys: 10
+groq_api_url: https://api.groq.com/openai/v1/chat/completions
+llm_calls_per_minute_per_key: 2
+llm_request_timeout_s: 60
+max_429_retries: 100
+max_request_error_retries: 5
+max_total_attempts: 40
+history_limit: 20
+global_seed: 12345
+candidate_timeout_s: 30.0
+distance_batch_size: 1024
+partial_failure_penalty: 200.0
+probe_weight: 0.5
+search_specs:
+- instance_id: 1
+  d: 2
+  p: 20
+- instance_id: 1
+  d: 2
+  p: 40
+- instance_id: 1
+  d: 2
+  p: 70
+probe_specs:
+- instance_id: 1
+  d: 2
+  p: 100
+- instance_id: 1
+  d: 3
+  p: 40
+- instance_id: 1
+  d: 4
+  p: 70
+final_eval_scope: id1_unseen
+final_top_n: 5
+cluster_zip_path: data/raw/cluster_tai.zip
+cluster_zip_path_alt: /content/drive/MyDrive/TM/cluster_tai.zip
+kmeans_res_path: data/raw/kmeans.res
+kmeans_res_path_alt: /content/drive/MyDrive/TM/kmeans.res
+radius_reference_path: data/raw/sphere_radius_baselines_free_and_snap_20260506_144622.zip
+radius_reference_path_alt: /content/drive/MyDrive/TM/sphere_radius_baselines_free_and_snap_20260506_144622.zip
+fallback_cluster_zip_globs:
+- /content/cluster_tai*.zip
+- /content/drive/My Drive/**/cluster_tai*.zip
+- /content/drive/MyDrive/**/cluster_tai*.zip
+fallback_res_globs:
+- /content/kmeans.res
+- /content/drive/My Drive/**/kmeans.res
+- /content/drive/MyDrive/**/kmeans.res
+fallback_radius_ref_globs:
+- /content/*radius*.zip
+- /content/*radius*.csv
+- /content/drive/My Drive/**/*radius*.zip
+- /content/drive/My Drive/**/*radius*.csv
+- /content/drive/MyDrive/**/*radius*.zip
+- /content/drive/MyDrive/**/*radius*.csv
+instance_extract_dir: /content/cluster_tai_instances_final_llm
+radius_ref_extract_dir: /content/radius_references_final_llm
+artifact_base_dir: /content/drive/MyDrive/TM/llm-clustering-runs
+objective_mode: pmedian
