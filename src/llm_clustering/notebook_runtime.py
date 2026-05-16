@@ -91,6 +91,11 @@ def build_runtime_config_from_notebook_globals(
     # Search/evolution settings.
     cfg["selection_strategy"] = str(_require(notebook_globals, "SELECTION_STRATEGY"))
     cfg["history_limit"] = int(_require(notebook_globals, "HISTORY_LIMIT"))
+
+    # Optional prompt/family guidance.
+    # "none" keeps the neutral prompt. Other values can enable targeted guidance,
+    # for example "pmedian_nucleation" for Run B.
+    cfg["family_guidance"] = str(notebook_globals.get("FAMILY_GUIDANCE", "none"))
     cfg["invalid_parent_redesign"] = bool(
         _require(notebook_globals, "INVALID_PARENT_REDESIGN")
     )
@@ -153,6 +158,7 @@ def build_runtime_config_from_notebook_globals(
         "temperature": cfg["temperature"],
         "top_p": cfg["top_p"],
         "selection_strategy": cfg["selection_strategy"],
+        "family_guidance": cfg.get("family_guidance", "none"),
         "hide_invalid_parent_code": cfg["hide_invalid_parent_code"],
         "artifact_base_dir": cfg["artifact_base_dir"],
         "runtime_config_path": str(runtime_config_path),

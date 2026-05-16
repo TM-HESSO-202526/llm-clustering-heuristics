@@ -86,11 +86,38 @@ Do not discard or merge centers unless you also introduce replacements so the fi
     raise ValueError(objective_mode)
 
 
-def base_task_prompt(objective_mode: str) -> str:
+def family_guidance_prompt_block(objective_mode: str, family_guidance: str = "none") -> str:
+    """Return optional prompt guidance for a specific heuristic family.
+
+    Use family_guidance="none" or "off" to keep the neutral prompt.
+    """
+    objective_mode = objective_mode.lower().strip()
+    guidance = str(family_guidance or "none").lower().strip()
+
+    if guidance in {"", "none", "off", "neutral", "false"}:
+        return ""
+
+    if objective_mode == "pmedian" and guidance in {"pmedian_nucleation", "run_b_pmedian_nucleation", "nucleation"}:
+        return """
+Optional family guidance for this run:
+For Run B/p-median, prefer constructive selected-point nucleation mechanisms: start from
+diverse seed medoids, maintain a Euclidean min_dist array, add or replace medoids based
+on uncovered demand / nearest-distance contribution, and use only bounded local
+replacement. Avoid generic k-means-style center movement, Lloyd-style centroid updates,
+continuous gradient updates, momentum/adaptive learning-rate schemes, or exhaustive
+all-point swap searches. Final centers must remain selected data points.
+""".strip()
+
+    raise ValueError(f"Unsupported family_guidance={family_guidance!r} for objective_mode={objective_mode!r}")
+
+
+def base_task_prompt(objective_mode: str, family_guidance: str = "none") -> str:
     return f"""
 Your task is to design a novel heuristic algorithm for the following clustering optimization problem.
 
 {objective_prompt_block(objective_mode)}
+
+{family_guidance_prompt_block(objective_mode, family_guidance)}
 
 Interface:
 The generated Python code must define exactly one class named ClusteringHeuristic:

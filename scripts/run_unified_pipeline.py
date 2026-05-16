@@ -1213,10 +1213,33 @@ Do not discard or merge centers unless you also introduce replacements so the fi
     raise ValueError(OBJECTIVE_MODE)
 
 
+def family_guidance_prompt_block():
+    """Return optional family guidance added to the LLM-visible prompt."""
+    guidance = str(CFG.get("family_guidance", "none") or "none").lower().strip()
+
+    if guidance in {"", "none", "off", "neutral", "false"}:
+        return ""
+
+    if OBJECTIVE_MODE == "pmedian" and guidance in {"pmedian_nucleation", "run_b_pmedian_nucleation", "nucleation"}:
+        return """
+Optional family guidance for this run:
+For Run B/p-median, prefer constructive selected-point nucleation mechanisms: start from
+diverse seed medoids, maintain a Euclidean min_dist array, add or replace medoids based
+on uncovered demand / nearest-distance contribution, and use only bounded local
+replacement. Avoid generic k-means-style center movement, Lloyd-style centroid updates,
+continuous gradient updates, momentum/adaptive learning-rate schemes, or exhaustive
+all-point swap searches. Final centers must remain selected data points.
+""".strip()
+
+    raise ValueError(f"Unsupported family_guidance={guidance!r} for objective_mode={OBJECTIVE_MODE!r}")
+
+
 BASE_TASK_PROMPT = f"""
 Your task is to design a novel heuristic algorithm for the following clustering optimization problem.
 
 {objective_prompt_block()}
+
+{family_guidance_prompt_block()}
 
 Interface:
 The generated Python code must define exactly one class named ClusteringHeuristic:
@@ -1523,6 +1546,7 @@ Return the answer in the required # Name / # Code format.
 
 print("Unified prompt builder ready for objective:", OBJECTIVE_MODE)
 print("Selection strategy:", normalized_selection_strategy())
+print("Family guidance:", CFG.get("family_guidance", "none"))
 print("Invalid-parent redesign:", CFG.get("invalid_parent_redesign"), "| any-invalid:", CFG.get("redesign_on_any_invalid_before_full_valid"), "| timeout:", CFG.get("redesign_on_timeout_parent"), "| expose-invalid-code:", not CFG.get("hide_invalid_parent_code", False))
 print("\n--- Objective prompt excerpt ---")
 print(objective_prompt_block())

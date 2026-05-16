@@ -26,6 +26,7 @@ def _base_globals(tmp_path: Path, smoke_test: bool = True):
         "MAX_REQUEST_ERROR_RETRIES": 5,
         "SELECTION_STRATEGY": "1+1",
         "HISTORY_LIMIT": 20,
+        "FAMILY_GUIDANCE": "pmedian_nucleation",
         "INVALID_PARENT_REDESIGN": True,
         "REDESIGN_ON_ANY_INVALID_BEFORE_FULL_VALID": True,
         "REDESIGN_ON_TIMEOUT_PARENT": True,
@@ -62,6 +63,7 @@ def test_build_runtime_config_smoke_test_forces_one_attempt(tmp_path):
     assert written["max_total_attempts"] == 1
     assert written["model"] == "llama-3.3-70b-versatile"
     assert written["hide_invalid_parent_code"] is False
+    assert written["family_guidance"] == "pmedian_nucleation"
     assert written["cluster_zip_path"] == "/tmp/cluster_tai.zip"
     assert written["cluster_zip_path_alt"] == "/tmp/cluster_tai.zip"
 
