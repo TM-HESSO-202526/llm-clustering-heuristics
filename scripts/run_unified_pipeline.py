@@ -1499,11 +1499,13 @@ def build_family_memory_block(attempts_df, parent=None):
         return ""
 
     limit = int(CFG.get("family_memory_limit", 8))
+    min_attempts_before_avoid = int(CFG.get("min_family_attempts_before_avoid", 2))
     threshold = float(CFG.get("weak_family_score_threshold", 20.0))
     allow_strong = bool(CFG.get("allow_strong_family_exploitation", True))
 
     weak_rows = []
     strong_rows = []
+    early_rows = []
     for _, r in summary.iterrows():
         score = _finite_float(r.get("best_selection_score"))
         is_strong = np.isfinite(score) and score <= threshold
@@ -1518,13 +1520,17 @@ def build_family_memory_block(attempts_df, parent=None):
         if np.isfinite(pg):
             item += f", best_probe_gap={pg:.3f}%"
         item += f", notes: {r['family_desc']}"
+        attempts = int(r["attempts"])
         if is_strong:
             strong_rows.append(item)
-        else:
+        elif attempts >= min_attempts_before_avoid:
             weak_rows.append(item)
+        else:
+            early_rows.append(item)
 
     weak_rows = weak_rows[:limit]
     strong_rows = strong_rows[:limit]
+    early_rows = early_rows[:limit]
 
     parent_family = ""
     if parent is not None:
@@ -1534,6 +1540,7 @@ def build_family_memory_block(attempts_df, parent=None):
         "Family novelty memory:",
         "The following mechanism-family summary is based only on previous attempts in this run.",
         "It is a compact summary; previous family code is not repeated here.",
+        f"A family is only treated as weak/stagnant after at least {min_attempts_before_avoid} attempts in this run.",
         objective_family_novelty_note(OBJECTIVE_MODE),
         "",
     ]
@@ -1548,6 +1555,14 @@ def build_family_memory_block(attempts_df, parent=None):
         )
     else:
         parts.append("No clearly weak/stagnant family has accumulated enough evidence yet.")
+
+    if early_rows:
+        parts.append("")
+        parts.append(
+            "Families observed but not yet avoided because they have too few attempts in this run "
+            f"(< {min_attempts_before_avoid} attempts):"
+        )
+        parts.extend(early_rows)
 
     if allow_strong and strong_rows:
         parts.append("")
@@ -1811,7 +1826,7 @@ Return the answer in the required # Name / # Code format.
 print("Unified prompt builder ready for objective:", OBJECTIVE_MODE)
 print("Selection strategy:", normalized_selection_strategy())
 print("Historical family avoidance:", CFG.get("historical_family_avoidance", False))
-print("Family novelty mode:", CFG.get("family_novelty_mode", False), "| memory limit:", CFG.get("family_memory_limit", 8), "| weak threshold:", CFG.get("weak_family_score_threshold", 20.0), "| allow strong exploitation:", CFG.get("allow_strong_family_exploitation", True))
+print("Family novelty mode:", CFG.get("family_novelty_mode", False), "| memory limit:", CFG.get("family_memory_limit", 8), "| min attempts before avoid:", CFG.get("min_family_attempts_before_avoid", 2), "| weak threshold:", CFG.get("weak_family_score_threshold", 20.0), "| allow strong exploitation:", CFG.get("allow_strong_family_exploitation", True))
 print("Invalid-parent redesign:", CFG.get("invalid_parent_redesign"), "| any-invalid:", CFG.get("redesign_on_any_invalid_before_full_valid"), "| timeout:", CFG.get("redesign_on_timeout_parent"), "| expose-invalid-code:", not CFG.get("hide_invalid_parent_code", False))
 print("\n--- Objective prompt excerpt ---")
 print(objective_prompt_block())

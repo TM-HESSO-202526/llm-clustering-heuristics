@@ -101,6 +101,7 @@ def build_runtime_config_from_notebook_globals(
     # explored in the current run. It does not force any specific target family.
     cfg["family_novelty_mode"] = bool(notebook_globals.get("FAMILY_NOVELTY_MODE", False))
     cfg["family_memory_limit"] = int(notebook_globals.get("FAMILY_MEMORY_LIMIT", 8))
+    cfg["min_family_attempts_before_avoid"] = int(notebook_globals.get("MIN_FAMILY_ATTEMPTS_BEFORE_AVOID", 2))
     cfg["weak_family_score_threshold"] = float(notebook_globals.get("WEAK_FAMILY_SCORE_THRESHOLD", 20.0))
     cfg["allow_strong_family_exploitation"] = bool(notebook_globals.get("ALLOW_STRONG_FAMILY_EXPLOITATION", True))
 
