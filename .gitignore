@@ -9,29 +9,23 @@ venv/
 .env
 .env.*
 *API_KEY*
-
 # Large/generated experiment outputs
 experiments/runs/*
 !experiments/runs/.gitkeep
 *.zip
 *.tar.gz
-
 # Local Colab/Drive artifacts
 /content/
 llm_clustering_unified_ABC_*/
-
 # Data policy: keep manifest + README, add raw instances only if allowed/small
 # Uncomment these if the raw instance files should stay outside git:
 # data/raw/*
 # !data/raw/.gitkeep
 # data/processed/*
 # !data/processed/.gitkeep
-
 *.egg-info/
 src/*.egg-info/
-
 # Local pipeline/runtime files
-src/*.egg-info/
 .venv_wsl/
 .tmp/
 data/raw/*
