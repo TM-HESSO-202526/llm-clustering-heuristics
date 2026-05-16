@@ -29,3 +29,12 @@ llm_clustering_unified_ABC_*/
 
 *.egg-info/
 src/*.egg-info/
+
+# Local pipeline/runtime files
+src/*.egg-info/
+.venv_wsl/
+.tmp/
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
