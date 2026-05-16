@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-import os
 import pandas as pd
 
 SYSTEM_PROMPT = (
@@ -86,38 +84,11 @@ Do not discard or merge centers unless you also introduce replacements so the fi
     raise ValueError(objective_mode)
 
 
-def family_guidance_prompt_block(objective_mode: str, family_guidance: str = "none") -> str:
-    """Return optional prompt guidance for a specific heuristic family.
-
-    Use family_guidance="none" or "off" to keep the neutral prompt.
-    """
-    objective_mode = objective_mode.lower().strip()
-    guidance = str(family_guidance or "none").lower().strip()
-
-    if guidance in {"", "none", "off", "neutral", "false"}:
-        return ""
-
-    if objective_mode == "pmedian" and guidance in {"pmedian_nucleation", "run_b_pmedian_nucleation", "nucleation"}:
-        return """
-Optional family guidance for this run:
-For Run B/p-median, prefer constructive selected-point nucleation mechanisms: start from
-diverse seed medoids, maintain a Euclidean min_dist array, add or replace medoids based
-on uncovered demand / nearest-distance contribution, and use only bounded local
-replacement. Avoid generic k-means-style center movement, Lloyd-style centroid updates,
-continuous gradient updates, momentum/adaptive learning-rate schemes, or exhaustive
-all-point swap searches. Final centers must remain selected data points.
-""".strip()
-
-    raise ValueError(f"Unsupported family_guidance={family_guidance!r} for objective_mode={objective_mode!r}")
-
-
-def base_task_prompt(objective_mode: str, family_guidance: str = "none") -> str:
+def base_task_prompt(objective_mode: str) -> str:
     return f"""
 Your task is to design a novel heuristic algorithm for the following clustering optimization problem.
 
 {objective_prompt_block(objective_mode)}
-
-{family_guidance_prompt_block(objective_mode, family_guidance)}
 
 Interface:
 The generated Python code must define exactly one class named ClusteringHeuristic:
@@ -180,9 +151,11 @@ def compact_history(attempts_df: pd.DataFrame, limit: int) -> str:
         status = "valid" if bool(r.get("valid", False)) else "invalid/partial"
         gap = r.get("search_gap_ref_mean", None)
         score = r.get("selection_score", None)
+        family = str(r.get("family_sig", "")).strip()
+        family_part = f" | family={family}" if family else ""
         err = str(r.get("error", ""))[:200].replace("\n", " ")
         lines.append(
-            f"iter={r.get('iteration')} | {r.get('algo_name', '')} | {status} | "
+            f"iter={r.get('iteration')} | {r.get('algo_name', '')} | {status}{family_part} | "
             f"search_gap={gap} | selection_score={score} | error={err}"
         )
     return "\n".join(lines)

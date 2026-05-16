@@ -1213,33 +1213,10 @@ Do not discard or merge centers unless you also introduce replacements so the fi
     raise ValueError(OBJECTIVE_MODE)
 
 
-def family_guidance_prompt_block():
-    """Return optional family guidance added to the LLM-visible prompt."""
-    guidance = str(CFG.get("family_guidance", "none") or "none").lower().strip()
-
-    if guidance in {"", "none", "off", "neutral", "false"}:
-        return ""
-
-    if OBJECTIVE_MODE == "pmedian" and guidance in {"pmedian_nucleation", "run_b_pmedian_nucleation", "nucleation"}:
-        return """
-Optional family guidance for this run:
-For Run B/p-median, prefer constructive selected-point nucleation mechanisms: start from
-diverse seed medoids, maintain a Euclidean min_dist array, add or replace medoids based
-on uncovered demand / nearest-distance contribution, and use only bounded local
-replacement. Avoid generic k-means-style center movement, Lloyd-style centroid updates,
-continuous gradient updates, momentum/adaptive learning-rate schemes, or exhaustive
-all-point swap searches. Final centers must remain selected data points.
-""".strip()
-
-    raise ValueError(f"Unsupported family_guidance={guidance!r} for objective_mode={OBJECTIVE_MODE!r}")
-
-
 BASE_TASK_PROMPT = f"""
 Your task is to design a novel heuristic algorithm for the following clustering optimization problem.
 
 {objective_prompt_block()}
-
-{family_guidance_prompt_block()}
 
 Interface:
 The generated Python code must define exactly one class named ClusteringHeuristic:
@@ -1315,12 +1292,209 @@ def compact_history(attempts_df, limit=20):
         status = "valid" if bool(r.get("valid", False)) else "invalid"
         score = r.get("selection_score", np.nan)
         gap = r.get("search_gap_ref_mean", np.nan)
-        err = str(r.get("error", ""))[:200]
+        family = str(r.get("family_sig", "") or "").strip()
+        family_part = f" | family={family}" if family else ""
+        err = str(r.get("error", ""))[:200].replace("\n", " ")
         lines.append(
-            f"iter={int(r.get('iteration', -1))} | {r.get('algo_name', '')} | {status} | "
+            f"iter={int(r.get('iteration', -1))} | {r.get('algo_name', '')} | {status}{family_part} | "
             f"search_gap={gap:.3f}% | selection_score={score:.3f} | error={err}"
         )
     return "\n".join(lines)
+
+
+FAMILY_DESCRIPTIONS = {
+    "gradient_descent": "continuous center movement, pseudo-gradient updates, momentum, adaptive learning-rate, or regularization style",
+    "kmeans_lloyd": "k-means/Lloyd/centroid-update style center refinement",
+    "farthest_first_spread": "spread-based, farthest-first, max-min, or min_dist constructive seeding",
+    "pmedian_medoid_replacement": "selected data-point medoids with replacement/swap/local medoid updates",
+    "nucleation": "nucleation, uncovered-demand, or nearest-distance contribution based selected-point construction",
+    "recursive_partition": "recursive partitioning, splitting, tree/quadrant/geometric divide-and-place construction",
+    "density_grid": "density/grid/bin/cell based construction",
+    "radius_covering": "radius, volume, coverage, active-center, or cluster-radius control mechanism",
+    "sampling_coreset": "sampling, subsampling, coreset, or reduced representative set construction",
+    "random_replacement": "randomized replacement or perturbation loop with no clearly distinct mechanism",
+    "other": "other or unclear mechanism family",
+    "generation_failure": "failed generation/parsing/safety-check attempt",
+}
+
+
+def infer_family_signature(algo_name, code, objective_mode):
+    """Infer a coarse mechanism family from the generated name and code.
+
+    This is intentionally simple and deterministic. It is used for logging and for
+    the optional family-memory prompt; it is not an evaluation metric.
+    """
+    text = f"{algo_name or ''}\n{code or ''}".lower().replace("-", "_")
+
+    if any(k in text for k in ["gradient", "momentum", "learning_rate", "learning rate", "regulariz"]):
+        return "gradient_descent"
+    if any(k in text for k in ["nucleation", "uncovered", "demand", "contribution"]):
+        return "nucleation"
+    if any(k in text for k in ["recursive", "partition", "split", "quadrant", "tree"]):
+        return "recursive_partition"
+    if any(k in text for k in ["density", "grid", "cell", "bin"]):
+        return "density_grid"
+    if any(k in text for k in ["sample", "subsample", "coreset"]):
+        return "sampling_coreset"
+    if any(k in text for k in ["radius", "volume", "cover", "covering", "nonempty"]):
+        return "radius_covering"
+    if any(k in text for k in ["farthest", "max_min", "maximin", "max min", "min_dist", "min distance"]):
+        return "farthest_first_spread"
+    if any(k in text for k in ["medoid", "swap", "replacement", "replace"]):
+        return "pmedian_medoid_replacement" if objective_mode == "pmedian" else "random_replacement"
+    if any(k in text for k in ["kmeans", "k_means", "lloyd", "centroid", "mean center"]):
+        return "kmeans_lloyd"
+    return "other"
+
+
+def family_description(family_sig):
+    return FAMILY_DESCRIPTIONS.get(str(family_sig or "other"), FAMILY_DESCRIPTIONS["other"])
+
+
+def _finite_float(value, default=np.nan):
+    try:
+        v = float(value)
+        return v if np.isfinite(v) else default
+    except Exception:
+        return default
+
+
+def build_family_summary(attempts_df):
+    """Return one summary row per inferred family in the current run."""
+    if attempts_df is None or len(attempts_df) == 0 or "family_sig" not in attempts_df.columns:
+        return pd.DataFrame()
+
+    rows = []
+    for fam, g in attempts_df.groupby("family_sig", dropna=False):
+        fam = str(fam or "other")
+        scores = pd.to_numeric(g.get("selection_score", pd.Series(dtype=float)), errors="coerce")
+        search_gaps = pd.to_numeric(g.get("search_gap_ref_mean", pd.Series(dtype=float)), errors="coerce")
+        probe_gaps = pd.to_numeric(g.get("probe_gap_ref_mean", pd.Series(dtype=float)), errors="coerce")
+        valid = g[g.get("valid", False) == True] if "valid" in g.columns else g.iloc[0:0]
+
+        best_score = float(scores.min()) if scores.notna().any() else np.nan
+        best_search_gap = float(search_gaps.min()) if search_gaps.notna().any() else np.nan
+        best_probe_gap = float(probe_gaps.min()) if probe_gaps.notna().any() else np.nan
+        latest_iteration = int(pd.to_numeric(g.get("iteration", pd.Series([0])), errors="coerce").max())
+
+        rows.append({
+            "family_sig": fam,
+            "family_desc": family_description(fam),
+            "attempts": int(len(g)),
+            "valid_attempts": int(len(valid)),
+            "best_selection_score": best_score,
+            "best_search_gap_ref_mean": best_search_gap,
+            "best_probe_gap_ref_mean": best_probe_gap,
+            "latest_iteration": latest_iteration,
+        })
+
+    out = pd.DataFrame(rows)
+    if len(out):
+        out = out.sort_values(["best_selection_score", "attempts"], ascending=[True, False], na_position="last")
+    return out
+
+
+def objective_family_novelty_note(objective_mode):
+    if objective_mode == "sse":
+        return (
+            "For Run A/SSE, structural novelty means changing the constructive center-selection or "
+            "initialization mechanism, not merely adding more Lloyd-style refinement, gradient updates, "
+            "momentum, regularization, or renamed k-means variants."
+        )
+    if objective_mode == "pmedian":
+        return (
+            "For Run B/p-median, structural novelty means changing how selected data-point medoids are "
+            "chosen or replaced. Avoid drifting into free-center k-means, centroid movement, gradient "
+            "updates, or exhaustive all-point swap searches. Final centers must remain data points."
+        )
+    if objective_mode == "radius":
+        return (
+            "For Run C/radius-volume, structural novelty means changing how the heuristic controls cluster "
+            "radii and active center usage. Avoid repeating generic volume-covering variants that only rename "
+            "the same radius assignment/refinement loop, especially if probe gaps in d=3 or d=4 remain high."
+        )
+    return "Structural novelty means changing the main construction mechanism, not only renaming or tuning constants."
+
+
+def build_family_memory_block(attempts_df, parent=None):
+    """Build the optional LLM-visible family-memory block.
+
+    The LLM sees concise family summaries, not code for all previous families. The selected
+    parent code is already provided elsewhere in the prompt.
+    """
+    if not bool(CFG.get("family_novelty_mode", False)):
+        return ""
+    summary = build_family_summary(attempts_df)
+    if summary.empty:
+        return ""
+
+    limit = int(CFG.get("family_memory_limit", 8))
+    threshold = float(CFG.get("weak_family_score_threshold", 20.0))
+    allow_strong = bool(CFG.get("allow_strong_family_exploitation", True))
+
+    weak_rows = []
+    strong_rows = []
+    for _, r in summary.iterrows():
+        score = _finite_float(r.get("best_selection_score"))
+        is_strong = np.isfinite(score) and score <= threshold
+        item = (
+            f"- {r['family_sig']}: attempts={int(r['attempts'])}, valid={int(r['valid_attempts'])}, "
+            f"best_selection_score={score:.3f}"
+        )
+        sg = _finite_float(r.get("best_search_gap_ref_mean"))
+        pg = _finite_float(r.get("best_probe_gap_ref_mean"))
+        if np.isfinite(sg):
+            item += f", best_search_gap={sg:.3f}%"
+        if np.isfinite(pg):
+            item += f", best_probe_gap={pg:.3f}%"
+        item += f", notes: {r['family_desc']}"
+        if is_strong:
+            strong_rows.append(item)
+        else:
+            weak_rows.append(item)
+
+    weak_rows = weak_rows[:limit]
+    strong_rows = strong_rows[:limit]
+
+    parent_family = ""
+    if parent is not None:
+        parent_family = str(parent.get("family_sig", "") or "").strip()
+
+    parts = [
+        "Family novelty memory:",
+        "The following mechanism-family summary is based only on previous attempts in this run.",
+        "It is a compact summary; previous family code is not repeated here.",
+        objective_family_novelty_note(OBJECTIVE_MODE),
+        "",
+    ]
+
+    if weak_rows:
+        parts.append("Weak or stagnant families to avoid repeating as minor variants:")
+        parts.extend(weak_rows)
+        parts.append("")
+        parts.append(
+            "Do not generate another small variation of these weak families. Avoid merely adding words such as "
+            "enhanced, adaptive, hybrid, momentum, regularized, or improved to the same mechanism."
+        )
+    else:
+        parts.append("No clearly weak/stagnant family has accumulated enough evidence yet.")
+
+    if allow_strong and strong_rows:
+        parts.append("")
+        parts.append("Strong or improving families may still be refined if the selected parent belongs to them:")
+        parts.extend(strong_rows)
+
+    if parent_family:
+        parts.append("")
+        parts.append(f"Selected parent inferred family: {parent_family} — {family_description(parent_family)}")
+
+    parts.append("")
+    parts.append(
+        "Generate a structurally different constructive heuristic unless the selected parent belongs to a genuinely "
+        "strong/improving family. A structural change means changing the main center-selection or cluster-construction "
+        "mechanism, not just tuning constants or adding another refinement loop."
+    )
+    return "\n".join(parts)
 
 
 def normalized_selection_strategy():
@@ -1432,6 +1606,8 @@ def build_prompt(iteration, attempts_df):
         "parent_selection_reason": reason,
         "iteration": int(parent.get("iteration", -1)),
         "name": parent.get("algo_name", ""),
+        "family_sig": parent.get("family_sig", ""),
+        "family_desc": parent.get("family_desc", ""),
         "valid": bool(parent.get("valid", False)),
         "selection_score": parent.get("selection_score", None),
         "search_gap_ref_mean_pct": parent.get("search_gap_ref_mean", None),
@@ -1450,6 +1626,8 @@ def build_prompt(iteration, attempts_df):
         "invalid_redesign_mode": bool(invalid_redesign_mode),
     }
 
+    family_memory = build_family_memory_block(attempts_df, parent=parent)
+
     strategy = normalized_selection_strategy()
 
     if invalid_redesign_mode:
@@ -1458,6 +1636,8 @@ def build_prompt(iteration, attempts_df):
 {BASE_TASK_PROMPT}
 
 {instruction}
+
+{family_memory}
 
 Current-run invalid/partial parent summary:
 ```json
@@ -1517,6 +1697,8 @@ Return the answer in the required # Name / # Code format.
 Previously generated heuristics for this active objective:
 {compact_history(attempts_df, int(CFG["history_limit"]))}
 
+{family_memory}
+
 {instruction}
 
 Selected parent summary:
@@ -1546,7 +1728,7 @@ Return the answer in the required # Name / # Code format.
 
 print("Unified prompt builder ready for objective:", OBJECTIVE_MODE)
 print("Selection strategy:", normalized_selection_strategy())
-print("Family guidance:", CFG.get("family_guidance", "none"))
+print("Family novelty mode:", CFG.get("family_novelty_mode", False), "| memory limit:", CFG.get("family_memory_limit", 8), "| weak threshold:", CFG.get("weak_family_score_threshold", 20.0), "| allow strong exploitation:", CFG.get("allow_strong_family_exploitation", True))
 print("Invalid-parent redesign:", CFG.get("invalid_parent_redesign"), "| any-invalid:", CFG.get("redesign_on_any_invalid_before_full_valid"), "| timeout:", CFG.get("redesign_on_timeout_parent"), "| expose-invalid-code:", not CFG.get("hide_invalid_parent_code", False))
 print("\n--- Objective prompt excerpt ---")
 print(objective_prompt_block())
@@ -1705,6 +1887,8 @@ for iteration in range(1, int(CFG["max_total_attempts"]) + 1):
         code_hash = stable_hash(normalize_ws(code), 20)
         row["code_hash"] = code_hash
         row["algo_name"] = parse_name(raw, code)
+        row["family_sig"] = infer_family_signature(row["algo_name"], code, OBJECTIVE_MODE)
+        row["family_desc"] = family_description(row["family_sig"])
 
         if code_hash in seen_hashes:
             raise ValueError("duplicate_code")
@@ -1759,6 +1943,7 @@ for iteration in range(1, int(CFG["max_total_attempts"]) + 1):
         row["selection_score"] = selection_score_from_summaries(search_summary, probe_summary)
 
         print("  name:", row["algo_name"])
+        print("  family:", row.get("family_sig", ""))
         print("  search feedback:")
         print(row["feedback_by_p"])
         if row.get("probe_feedback_by_p"):
@@ -1773,6 +1958,8 @@ for iteration in range(1, int(CFG["max_total_attempts"]) + 1):
         row.update({
             "valid": False,
             "algo_name": row.get("algo_name", "FAILED"),
+            "family_sig": row.get("family_sig", "generation_failure"),
+            "family_desc": row.get("family_desc", family_description(row.get("family_sig", "generation_failure"))),
             "selection_score": 1e9,
             "partial_valid_cases": 0,
             "partial_total_cases": len(SEARCH_DF),
@@ -1793,6 +1980,9 @@ for iteration in range(1, int(CFG["max_total_attempts"]) + 1):
     attempt_rows.append(row)
     attempts_df = pd.DataFrame(attempt_rows)
     attempts_df.to_csv(os.path.join(ARTIFACT_DIR, "llm_attempts.csv"), index=False)
+    family_summary_df = build_family_summary(attempts_df)
+    if len(family_summary_df):
+        family_summary_df.to_csv(os.path.join(ARTIFACT_DIR, "llm_family_summary.csv"), index=False)
 
     if search_detail_frames:
         pd.concat(search_detail_frames, ignore_index=True).to_csv(

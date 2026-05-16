@@ -92,10 +92,14 @@ def build_runtime_config_from_notebook_globals(
     cfg["selection_strategy"] = str(_require(notebook_globals, "SELECTION_STRATEGY"))
     cfg["history_limit"] = int(_require(notebook_globals, "HISTORY_LIMIT"))
 
-    # Optional prompt/family guidance.
-    # "none" keeps the neutral prompt. Other values can enable targeted guidance,
-    # for example "pmedian_nucleation" for Run B.
-    cfg["family_guidance"] = str(notebook_globals.get("FAMILY_GUIDANCE", "none"))
+    # Family novelty memory. This is objective-neutral and summarizes weak/stagnant
+    # mechanism families already explored in the current run. It does not force
+    # any specific target family.
+    cfg["family_novelty_mode"] = bool(notebook_globals.get("FAMILY_NOVELTY_MODE", False))
+    cfg["family_memory_limit"] = int(notebook_globals.get("FAMILY_MEMORY_LIMIT", 8))
+    cfg["weak_family_score_threshold"] = float(notebook_globals.get("WEAK_FAMILY_SCORE_THRESHOLD", 20.0))
+    cfg["allow_strong_family_exploitation"] = bool(notebook_globals.get("ALLOW_STRONG_FAMILY_EXPLOITATION", True))
+
     cfg["invalid_parent_redesign"] = bool(
         _require(notebook_globals, "INVALID_PARENT_REDESIGN")
     )
@@ -158,7 +162,10 @@ def build_runtime_config_from_notebook_globals(
         "temperature": cfg["temperature"],
         "top_p": cfg["top_p"],
         "selection_strategy": cfg["selection_strategy"],
-        "family_guidance": cfg.get("family_guidance", "none"),
+        "family_novelty_mode": cfg.get("family_novelty_mode", False),
+        "family_memory_limit": cfg.get("family_memory_limit", 8),
+        "weak_family_score_threshold": cfg.get("weak_family_score_threshold", 20.0),
+        "allow_strong_family_exploitation": cfg.get("allow_strong_family_exploitation", True),
         "hide_invalid_parent_code": cfg["hide_invalid_parent_code"],
         "artifact_base_dir": cfg["artifact_base_dir"],
         "runtime_config_path": str(runtime_config_path),
