@@ -119,8 +119,10 @@ CFG = {
     "kmeans_res_path_alt": "/content/drive/MyDrive/TM/kmeans.res",
 
     # Run C radius reference can be either a CSV or a zip containing the CSV.
-    "radius_reference_path": "/content/drive/My Drive/TM/taillard_radius_reference_hybrid.zip",
-    "radius_reference_path_alt": "/content/drive/MyDrive/TM/taillard_radius_reference_hybrid.zip",
+    # Default: generator/reference centers = the p last points in each cluster_tai instance.
+    # This matches Prof. Taillard's reporting reference: value relative to the centers used to generate the problem.
+    "radius_reference_path": "/content/drive/My Drive/TM/generator_radius_reference_last_p.zip",
+    "radius_reference_path_alt": "/content/drive/MyDrive/TM/generator_radius_reference_last_p.zip",
 
     # Fallback searches
     "fallback_cluster_zip_globs": [
@@ -134,12 +136,12 @@ CFG = {
         "/content/drive/MyDrive/**/kmeans.res",
     ],
     "fallback_radius_ref_globs": [
-        "/content/*radius*.zip",
-        "/content/*radius*.csv",
-        "/content/drive/My Drive/**/*radius*.zip",
-        "/content/drive/My Drive/**/*radius*.csv",
-        "/content/drive/MyDrive/**/*radius*.zip",
-        "/content/drive/MyDrive/**/*radius*.csv",
+        "/content/*generator*radius*.zip",
+        "/content/*generator*radius*.csv",
+        "/content/drive/My Drive/**/*generator*radius*.zip",
+        "/content/drive/My Drive/**/*generator*radius*.csv",
+        "/content/drive/MyDrive/**/*generator*radius*.zip",
+        "/content/drive/MyDrive/**/*generator*radius*.csv",
     ],
 
     # Extraction dirs
@@ -345,6 +347,148 @@ def extract_zip_fresh(zip_path, extract_dir):
     return extract_dir
 
 
+def _parse_cluster_tai_text_for_generator_reference(text, source_name):
+    """Parse a cluster_tai CSV/text file with header n p d and n coordinate rows."""
+    lines = [ln.strip() for ln in str(text).splitlines() if ln.strip()]
+    if not lines:
+        raise ValueError(f"Empty instance file: {source_name}")
+
+    header_nums = re.findall(NUMBER_RE, lines[0])
+    if len(header_nums) < 3:
+        raise ValueError(f"First line must contain n p d in {source_name!r}; got {lines[0]!r}")
+    n = int(float(header_nums[0]))
+    p = int(float(header_nums[1]))
+    d = int(float(header_nums[2]))
+
+    coords = []
+    for ln in lines[1:]:
+        nums = [float(x) for x in re.findall(NUMBER_RE, ln)]
+        if len(nums) < d:
+            continue
+        coords.append(nums[-d:])
+
+    X = np.asarray(coords, dtype=float)
+    if X.shape != (n, d):
+        raise ValueError(f"Expected coordinates shape {(n, d)} in {source_name}, got {X.shape}")
+    if p <= 0 or p > n:
+        raise ValueError(f"Invalid p={p}, n={n} in {source_name}")
+    if not np.all(np.isfinite(X)):
+        raise ValueError(f"Non-finite coordinates in {source_name}")
+    return X, n, p, d
+
+
+def _radius_power_cost_for_centers(X, centers, batch_size=2048):
+    """Compute sum_j max_{assigned to j} ||x-c_j||^d using squared distances."""
+    X = np.asarray(X, dtype=float)
+    centers = np.asarray(centers, dtype=float)
+    if centers.ndim != 2 or centers.shape[1] != X.shape[1]:
+        raise ValueError(f"Bad centers shape {centers.shape} for X shape {X.shape}")
+
+    k = centers.shape[0]
+    d = X.shape[1]
+    max_sq = np.zeros(k, dtype=float)
+    counts = np.zeros(k, dtype=np.int64)
+
+    for start in range(0, len(X), int(batch_size)):
+        xb = X[start:start + int(batch_size)]
+        diff = xb[:, None, :] - centers[None, :, :]
+        dist2 = np.sum(diff * diff, axis=2)
+        labels = np.argmin(dist2, axis=1)
+        chosen = dist2[np.arange(len(xb)), labels]
+        for j in np.unique(labels):
+            mask = labels == j
+            counts[j] += int(mask.sum())
+            local_max = float(np.max(chosen[mask]))
+            if local_max > max_sq[j]:
+                max_sq[j] = local_max
+
+    # Empty centers contribute 0 radius. With the p generator centers this should normally not be an issue,
+    # but this matches the objective implementation used elsewhere in the pipeline.
+    return float(np.sum(np.power(max_sq, float(d) / 2.0))), counts
+
+
+def build_generator_last_p_radius_reference_zip(cluster_zip_path, output_zip_path):
+    """Build Run C references from the p last points of every cluster_tai instance.
+
+    Prof. Taillard's quality ratios are measured relative to the solution corresponding
+    to the centers used to generate the problem. In the provided cluster_tai instances,
+    these generator centers are the p last points. This builder computes the same
+    radius-volume objective used in Run C: sum_j radius_j^d.
+    """
+    cluster_zip_path = str(cluster_zip_path)
+    output_zip_path = str(output_zip_path)
+    if not os.path.exists(cluster_zip_path):
+        raise FileNotFoundError(f"cluster_tai.zip not found: {cluster_zip_path}")
+
+    rows = []
+    with zipfile.ZipFile(cluster_zip_path, "r") as z:
+        names = sorted(n for n in z.namelist() if INSTANCE_RE.search(os.path.basename(n)))
+        if not names:
+            raise RuntimeError(f"No cluster_tai instances found in {cluster_zip_path}")
+        for name in names:
+            base = os.path.basename(name)
+            m = INSTANCE_RE.search(base)
+            if not m:
+                continue
+            meta = {k: int(v) for k, v in m.groupdict().items()}
+            instance_name = m.group(0)
+            text = z.read(name).decode("utf-8", errors="ignore")
+            X, n, p, d = _parse_cluster_tai_text_for_generator_reference(text, base)
+            centers = X[-p:].copy()
+            cost, counts = _radius_power_cost_for_centers(X, centers, batch_size=4096)
+            rows.append({
+                "instance": instance_name,
+                "n": n,
+                "p": p,
+                "d": d,
+                "instance_id": meta["instance_id"],
+                "ref_radius_power_cost": cost,
+                "reference_type": "generator_last_p_centers",
+                "center_constraint": "snap_to_points",
+                "uses_all_n_points": True,
+                "min_assigned_count": int(counts.min()) if len(counts) else 0,
+                "empty_centers": int(np.sum(counts == 0)) if len(counts) else 0,
+            })
+
+    df = pd.DataFrame(rows).sort_values(["d", "p", "n", "instance_id", "instance"]).reset_index(drop=True)
+    if df.empty:
+        raise RuntimeError("No generator radius references were produced.")
+
+    out_dir = os.path.dirname(output_zip_path) or "."
+    os.makedirs(out_dir, exist_ok=True)
+    tmp_token = hashlib.sha256(str(output_zip_path).encode("utf-8")).hexdigest()[:10]
+    tmp_dir = os.path.join("/tmp", f"generator_radius_reference_{tmp_token}")
+    if os.path.exists(tmp_dir):
+        shutil.rmtree(tmp_dir)
+    os.makedirs(tmp_dir, exist_ok=True)
+
+    main_csv = os.path.join(tmp_dir, "radius_volume_reference_generator_last_p.csv")
+    alias_csv = os.path.join(tmp_dir, "radius_volume_reference_C1_generator_last_p.csv")
+    df.to_csv(main_csv, index=False)
+    df.to_csv(alias_csv, index=False)
+
+    with zipfile.ZipFile(output_zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        z.write(main_csv, arcname=os.path.basename(main_csv))
+        z.write(alias_csv, arcname=os.path.basename(alias_csv))
+
+    print("Built generator-last-p Run C reference:", output_zip_path)
+    print("Rows:", len(df))
+    return output_zip_path
+
+
+def choose_radius_reference_output_path():
+    """Prefer the Drive/MyDrive alt path when available; otherwise use the explicit path or /content."""
+    for key in ["radius_reference_path_alt", "radius_reference_path"]:
+        p = CFG.get(key)
+        if p:
+            try:
+                os.makedirs(os.path.dirname(p) or ".", exist_ok=True)
+                return p
+            except Exception:
+                pass
+    return "/content/generator_radius_reference_last_p.zip"
+
+
 # =========================
 # Locate cluster_tai.zip
 # =========================
@@ -388,24 +532,27 @@ print("kmeans.res:", kmeans_res)
 
 
 # =========================
-# Locate radius reference only for Run C
+# Locate or auto-build radius reference only for Run C
 # =========================
 
 radius_reference_file = None
 
 if OBJECTIVE_MODE == "radius":
+    # For Run C, the intended default reference is generated automatically from cluster_tai.zip:
+    # use the p last points as the generator/reference centers and compute sum_j radius_j^d.
+    # Avoid silently picking older handcrafted/Taillard-hybrid reference zips from broad fallback globs.
     radius_reference_file = find_first_existing_file(
         path=CFG.get("radius_reference_path"),
         alt_path=CFG.get("radius_reference_path_alt"),
-        fallback_globs=CFG.get("fallback_radius_ref_globs"),
-        description="radius reference zip/csv",
+        fallback_globs=None,
+        description="Run C generator-last-p radius reference zip/csv",
     )
 
-    radius_reference_file = manual_upload_if_needed(
-        radius_reference_file,
-        "Could not find radius reference zip/csv. Please upload the Run C radius reference zip or csv now in Colab.",
-        allowed_suffixes=[".zip", ".csv"],
-    )
+    if radius_reference_file is None:
+        radius_reference_file = choose_radius_reference_output_path()
+        print("Run C reference missing; building generator-last-p reference automatically.")
+        print("Reference output:", radius_reference_file)
+        build_generator_last_p_radius_reference_zip(cluster_zip, radius_reference_file)
 
     print("radius reference input:", radius_reference_file)
 
@@ -584,7 +731,10 @@ def load_radius_reference(path_or_zip):
 
     candidates = []
     wanted = [
-        # New Run C references produced from Prof. Taillard's hypersphere-volume code.
+        # Current Run C reference: p last points are the generator/reference centers.
+        "radius_volume_reference_generator_last_p.csv",
+        "radius_volume_reference_C1_generator_last_p.csv",
+        # Older optional references produced from Prof. Taillard's hypersphere-volume code.
         "radius_volume_reference_taillard_best_by_instance.csv",
         "radius_volume_reference_taillard_hybrid.csv",
         # Backward-compatible names from the older handcrafted/free-center reference builders.
@@ -607,9 +757,17 @@ def load_radius_reference(path_or_zip):
     csv_path = sorted(candidates)[0]
     df = pd.read_csv(csv_path)
 
-    # If the file contains both center modes, keep free only for final Run C.
+    # If the file contains several center modes, keep the mode compatible with the active Run C constraint.
     if "center_mode" in df.columns:
-        df = df[df["center_mode"].astype(str).str.lower().isin(["free", "c1_free", "free_centers"])].copy()
+        cm = df["center_mode"].astype(str).str.lower()
+        if CENTER_CONSTRAINT == "snap_to_points":
+            allowed = [
+                "snap_to_points", "medoid", "medoids", "data_point", "data_points",
+                "generator_last_p", "generator_last_p_centers", "last_p", "last_p_medoids",
+            ]
+        else:
+            allowed = ["free", "c1_free", "free_centers"]
+        df = df[cm.isin(allowed)].copy()
 
     # Normalize reference column name.
     possible_ref_cols = [

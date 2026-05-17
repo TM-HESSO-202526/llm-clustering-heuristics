@@ -49,8 +49,8 @@ cluster_zip_path: data/raw/cluster_tai.zip
 cluster_zip_path_alt: /content/drive/MyDrive/TM/cluster_tai.zip
 kmeans_res_path: data/raw/kmeans.res
 kmeans_res_path_alt: /content/drive/MyDrive/TM/kmeans.res
-radius_reference_path: data/raw/taillard_radius_reference_hybrid.zip
-radius_reference_path_alt: /content/drive/MyDrive/TM/taillard_radius_reference_hybrid.zip
+radius_reference_path: data/raw/generator_radius_reference_last_p.zip
+radius_reference_path_alt: /content/drive/MyDrive/TM/generator_radius_reference_last_p.zip
 fallback_cluster_zip_globs:
 - /content/cluster_tai*.zip
 - /content/drive/My Drive/**/cluster_tai*.zip
@@ -60,12 +60,12 @@ fallback_res_globs:
 - /content/drive/My Drive/**/kmeans.res
 - /content/drive/MyDrive/**/kmeans.res
 fallback_radius_ref_globs:
-- /content/*radius*.zip
-- /content/*radius*.csv
-- /content/drive/My Drive/**/*radius*.zip
-- /content/drive/My Drive/**/*radius*.csv
-- /content/drive/MyDrive/**/*radius*.zip
-- /content/drive/MyDrive/**/*radius*.csv
+- /content/*generator*radius*.zip
+- /content/*generator*radius*.csv
+- /content/drive/My Drive/**/*generator*radius*.zip
+- /content/drive/My Drive/**/*generator*radius*.csv
+- /content/drive/MyDrive/**/*generator*radius*.zip
+- /content/drive/MyDrive/**/*generator*radius*.csv
 instance_extract_dir: /content/cluster_tai_instances_final_llm
 radius_ref_extract_dir: /content/radius_references_final_llm
 artifact_base_dir: /content/drive/MyDrive/TM/llm-clustering-runs
