@@ -20,6 +20,12 @@ OBJECTIVE_BY_RUN = {
     "C": "radius",
 }
 
+CENTER_CONSTRAINT_BY_RUN = {
+    "A": "free",
+    "B": "snap_to_points",
+    "C": "snap_to_points",  # Taillard-style Run C: data-point medoid centers
+}
+
 
 def _require(ns: Mapping[str, Any], name: str) -> Any:
     """Return a required notebook variable or raise a clear error."""
@@ -67,6 +73,7 @@ def build_runtime_config_from_notebook_globals(
 
     # Main objective and run size.
     cfg["objective_mode"] = OBJECTIVE_BY_RUN[run]
+    cfg["center_constraint"] = CENTER_CONSTRAINT_BY_RUN[run]
     cfg["max_total_attempts"] = (
         1 if smoke_test else int(_require(notebook_globals, "MAX_TOTAL_ATTEMPTS"))
     )
@@ -161,6 +168,7 @@ def build_runtime_config_from_notebook_globals(
     effective_summary = {
         "run": run,
         "objective_mode": cfg["objective_mode"],
+        "center_constraint": cfg.get("center_constraint"),
         "smoke_test": smoke_test,
         "max_total_attempts": cfg["max_total_attempts"],
         "model": cfg["model"],
@@ -170,6 +178,7 @@ def build_runtime_config_from_notebook_globals(
         "historical_family_avoidance": cfg.get("historical_family_avoidance", False),
         "family_novelty_mode": cfg.get("family_novelty_mode", False),
         "family_memory_limit": cfg.get("family_memory_limit", 8),
+        "min_family_attempts_before_avoid": cfg.get("min_family_attempts_before_avoid", 2),
         "weak_family_score_threshold": cfg.get("weak_family_score_threshold", 20.0),
         "allow_strong_family_exploitation": cfg.get("allow_strong_family_exploitation", True),
         "hide_invalid_parent_code": cfg["hide_invalid_parent_code"],

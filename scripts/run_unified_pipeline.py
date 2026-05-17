@@ -38,15 +38,18 @@ CFG = {
     # Choose exactly one active objective:
     #   "sse"     -> Run A: k-means / free centers / sum of squared distances
     #   "pmedian" -> Run B: centers constrained to data points / sum of Euclidean distances
-    #   "radius"  -> Run C: free centers / sum of cluster radii^d
+    #   "radius"  -> Run C: data-point medoid centers / sum of cluster radii^d
     "objective_mode": "sse",
 
-    # Final center constraints are determined by objective_mode:
+    # Final center constraints are determined by objective_mode unless CFG["center_constraint"] is set:
     #   sse     -> free
     #   pmedian -> snap_to_points
-    #   radius  -> free
+    #   radius  -> snap_to_points (Taillard-style medoid/data-point centers)
     "allow_refinement": True,
     "selection_strategy": "1+1",
+    # Optional explicit override. Leave as None to use the objective default.
+    # Allowed values: "free", "snap_to_points".
+    "center_constraint": None,
     "numpy_only": True,
     
     # Generalized invalid/timeout parent redesign mechanism.
@@ -116,8 +119,8 @@ CFG = {
     "kmeans_res_path_alt": "/content/drive/MyDrive/TM/kmeans.res",
 
     # Run C radius reference can be either a CSV or a zip containing the CSV.
-    "radius_reference_path": "/content/drive/My Drive/TM/sphere_radius_baselines_free_and_snap_20260506_144622.zip",
-    "radius_reference_path_alt": "/content/drive/MyDrive/TM/sphere_radius_baselines_free_and_snap_20260506_144622.zip",
+    "radius_reference_path": "/content/drive/My Drive/TM/taillard_radius_reference_hybrid.zip",
+    "radius_reference_path_alt": "/content/drive/MyDrive/TM/taillard_radius_reference_hybrid.zip",
 
     # Fallback searches
     "fallback_cluster_zip_globs": [
@@ -189,11 +192,18 @@ OBJECTIVE_MODE = CFG["objective_mode"].lower().strip()
 if OBJECTIVE_MODE not in {"sse", "pmedian", "radius"}:
     raise ValueError("CFG['objective_mode'] must be one of: 'sse', 'pmedian', 'radius'.")
 
-CENTER_CONSTRAINT = {
+_DEFAULT_CENTER_CONSTRAINT = {
     "sse": "free",
     "pmedian": "snap_to_points",
-    "radius": "free",
+    # Run C now follows the Taillard baseline setting: medoid/data-point centers.
+    # Generated code may return free coordinates, but the evaluator snaps final centers
+    # to input points before computing the radius-volume objective.
+    "radius": "snap_to_points",
 }[OBJECTIVE_MODE]
+
+CENTER_CONSTRAINT = str(CFG.get("center_constraint") or _DEFAULT_CENTER_CONSTRAINT).strip()
+if CENTER_CONSTRAINT not in {"free", "snap_to_points"}:
+    raise ValueError("CFG['center_constraint'] must be one of: 'free', 'snap_to_points', or None.")
 
 _ARTIFACT_BASE_DIR = CFG.get("artifact_base_dir", "/content")
 os.makedirs(_ARTIFACT_BASE_DIR, exist_ok=True)
@@ -574,6 +584,10 @@ def load_radius_reference(path_or_zip):
 
     candidates = []
     wanted = [
+        # New Run C references produced from Prof. Taillard's hypersphere-volume code.
+        "radius_volume_reference_taillard_best_by_instance.csv",
+        "radius_volume_reference_taillard_hybrid.csv",
+        # Backward-compatible names from the older handcrafted/free-center reference builders.
         "radius_volume_reference_C1_free_centers.csv",
         "radius_volume_reference_by_center_mode_best_by_instance.csv",
         "radius_volume_reference_best_by_instance_all_modes.csv",
@@ -1183,30 +1197,36 @@ Do not optimize squared distances internally for the p-median objective.
 
     if OBJECTIVE_MODE == "radius":
         return """
-Active objective: Run C — radius/volume covering objective.
+Active objective: Run C — radius/volume covering objective with medoid/data-point centers.
 
 Problem:
-Given n points X in R^d and a number p, return p centers in R^d.
-Centers are free coordinates; they do not need to be input points.
+Given n points X in R^d and a number p, return p centers that are elements of X.
+The final centers should be data points or coordinates copied from data points.
+This matches the Taillard kmedian/PAM/hybrid baseline setting for the hypersphere-volume objective.
 
 Evaluation objective:
-Each point is assigned to its nearest center. For each cluster j, define radius_j as
-the maximum Euclidean distance from center j to any point assigned to j. The objective is:
+Each point is assigned to its nearest selected center. For each cluster j, define radius_j as
+the maximum Euclidean distance from selected center j to any point assigned to j. The objective is:
 sum_j radius_j^d, where d is the dimension.
 
 Interpretation:
-This is proportional to the sum of volumes of spheres covering the assigned clusters.
-The heuristic should produce centers that cover all assigned points with small cluster radii.
+This is proportional to the sum of volumes of hyperspheres covering the assigned clusters.
+The heuristic should select medoid/data-point centers that cover all assigned points with small cluster radii.
+
+Center constraint:
+Final centers are constrained to data points. The evaluator will snap centers to the nearest
+data points if necessary, but the returned centers should respect the selected-point constraint.
+If you compute temporary free positions, the final returned centers must be coordinates of data points.
 
 Implementation detail for radius/volume objective:
-Use distances and cluster radii when comparing candidate solutions.
+Use Euclidean distances and cluster radii when comparing candidate solutions.
 Do not optimize SSE-style sums of squared distances internally for the radius/volume objective.
 If you maintain nearest-distance arrays, use Euclidean distances/radii that support the active radius objective.
 
 Active-center requirement for radius/volume objective:
 Use all p centers effectively in the final returned solution.
 Avoid returning many centers that become empty after nearest-center assignment.
-If your algorithm creates, moves, removes, or replaces centers, make sure the final returned set still contains p active centers.
+If your algorithm creates, moves, removes, or replaces centers, make sure the final returned set still contains p active data-point centers.
 Do not discard or merge centers unless you also introduce replacements so the final solution still uses p active centers.
 """.strip()
 
@@ -1409,9 +1429,10 @@ def objective_family_novelty_note(objective_mode):
         )
     if objective_mode == "radius":
         return (
-            "For Run C/radius-volume, structural novelty means changing how the heuristic controls cluster "
-            "radii and active center usage. Avoid repeating generic volume-covering variants that only rename "
-            "the same radius assignment/refinement loop, especially if probe gaps in d=3 or d=4 remain high."
+            "For Run C/radius-volume, structural novelty means changing how selected data-point centers/medoids "
+            "control cluster radii and active center usage. Avoid repeating generic volume-covering variants that only rename "
+            "the same radius assignment/refinement loop, especially if probe gaps in d=3 or d=4 remain high. "
+            "Final centers must remain data points."
         )
     return "Structural novelty means changing the main construction mechanism, not only renaming or tuning constants."
 
@@ -1459,14 +1480,15 @@ def historical_family_avoidance_block(objective_mode):
     )
 
     radius = (
-        "For Run C / radius-volume: avoid generating another generic VolumeCoveringHeuristic / ImprovedVolumeCoveringHeuristic "
-        "/ EnhancedVolumeCoveringHeuristic if the mechanism is only nearest-center assignment plus small "
-        "radius-based center movement. Previous runs often repeated this family without solving high-dimensional "
-        "probe failures. For this objective, structural novelty should change how active centers are used, how "
-        "high-radius clusters are split/repaired, and how the method controls radii in d=3 and d=4, not just rename "
-        "the same volume-covering loop. Avoid recursive partitioning schemes that can recurse too deeply, waste "
-        "centers, or create empty-center behavior. Historically strong radius-aware active-center methods are not "
-        "banned if they genuinely improve probe behavior, especially in d=3 and d=4."
+        "For Run C / radius-volume: final centers are now constrained to selected data points / medoids, matching "
+        "the Taillard kmedian/PAM/hybrid baseline setting. Avoid generating another generic VolumeCoveringHeuristic / "
+        "ImprovedVolumeCoveringHeuristic / EnhancedVolumeCoveringHeuristic if the mechanism is only nearest-center "
+        "assignment plus small free-center movement. Previous runs often repeated this family without solving "
+        "high-dimensional probe failures. For this objective, structural novelty should change how active medoids are "
+        "selected, how high-radius clusters are split/repaired using data-point centers, and how the method controls "
+        "radii in d=3 and d=4, not just rename the same volume-covering loop. Avoid recursive partitioning schemes "
+        "that can recurse too deeply, waste centers, or create empty-center behavior. Historically strong radius-aware "
+        "active-center methods are not banned if they genuinely improve probe behavior, especially in d=3 and d=4."
     )
 
     mode = str(objective_mode).lower().strip()

@@ -55,30 +55,36 @@ Do not optimize squared distances internally for the p-median objective.
 
     if objective_mode == "radius":
         return """
-Active objective: Run C — radius/volume covering objective.
+Active objective: Run C — radius/volume covering objective with medoid/data-point centers.
 
 Problem:
-Given n points X in R^d and a number p, return p centers in R^d.
-Centers are free coordinates; they do not need to be input points.
+Given n points X in R^d and a number p, return p centers that are elements of X.
+The final centers should be data points or coordinates copied from data points.
+This matches the Taillard kmedian/PAM/hybrid baseline setting for the hypersphere-volume objective.
 
 Evaluation objective:
-Each point is assigned to its nearest center. For each cluster j, define radius_j as
-the maximum Euclidean distance from center j to any point assigned to j. The objective is:
+Each point is assigned to its nearest selected center. For each cluster j, define radius_j as
+the maximum Euclidean distance from selected center j to any point assigned to j. The objective is:
 sum_j radius_j^d, where d is the dimension.
 
 Interpretation:
-This is proportional to the sum of volumes of spheres covering the assigned clusters.
-The heuristic should produce centers that cover all assigned points with small cluster radii.
+This is proportional to the sum of volumes of hyperspheres covering the assigned clusters.
+The heuristic should select medoid/data-point centers that cover all assigned points with small cluster radii.
+
+Center constraint:
+Final centers are constrained to data points. The evaluator will snap centers to the nearest
+data points if necessary, but the returned centers should respect the selected-point constraint.
+If you compute temporary free positions, the final returned centers must be coordinates of data points.
 
 Implementation detail for radius/volume objective:
-Use distances and cluster radii when comparing candidate solutions.
+Use Euclidean distances and cluster radii when comparing candidate solutions.
 Do not optimize SSE-style sums of squared distances internally for the radius/volume objective.
 If you maintain nearest-distance arrays, use Euclidean distances/radii that support the active radius objective.
 
 Active-center requirement for radius/volume objective:
 Use all p centers effectively in the final returned solution.
 Avoid returning many centers that become empty after nearest-center assignment.
-If your algorithm creates, moves, removes, or replaces centers, make sure the final returned set still contains p active centers.
+If your algorithm creates, moves, removes, or replaces centers, make sure the final returned set still contains p active data-point centers.
 Do not discard or merge centers unless you also introduce replacements so the final solution still uses p active centers.
 """.strip()
     raise ValueError(objective_mode)
@@ -189,9 +195,10 @@ def historical_family_avoidance_block(objective_mode: str) -> str:
         )
     elif objective_mode == "radius":
         body = (
-            "For Run C / radius-volume: avoid generic VolumeCoveringHeuristic variants that only rename the "
-            "same nearest-center assignment plus small radius-based center movement. Structural novelty should "
-            "change active-center usage, high-radius cluster split/repair, and d=3/d=4 radius control."
+            "For Run C / radius-volume: final centers are now constrained to selected data points / medoids, matching "
+            "the Taillard kmedian/PAM/hybrid baseline setting. Avoid generic VolumeCoveringHeuristic variants that only rename the "
+            "same nearest-center assignment plus small free-center movement. Structural novelty should change active medoid usage, "
+            "high-radius cluster split/repair using data-point centers, and d=3/d=4 radius control."
         )
     else:
         body = "Avoid historically repeated weak families and prefer structural novelty."

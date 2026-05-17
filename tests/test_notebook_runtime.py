@@ -64,6 +64,7 @@ def test_build_runtime_config_smoke_test_forces_one_attempt(tmp_path):
 
     written = yaml.safe_load(Path(runtime_path).read_text(encoding="utf-8"))
     assert cfg["objective_mode"] == "sse"
+    assert cfg["center_constraint"] == "free"
     assert cfg["max_total_attempts"] == 1
     assert written["max_total_attempts"] == 1
     assert written["model"] == "llama-3.3-70b-versatile"
@@ -86,4 +87,5 @@ def test_build_runtime_config_full_run_uses_requested_attempts(tmp_path):
     _, cfg = build_runtime_config_from_notebook_globals(ns, runtime_dir=tmp_path)
 
     assert cfg["objective_mode"] == "radius"
+    assert cfg["center_constraint"] == "snap_to_points"
     assert cfg["max_total_attempts"] == 17

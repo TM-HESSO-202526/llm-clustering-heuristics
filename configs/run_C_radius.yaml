@@ -49,8 +49,8 @@ cluster_zip_path: data/raw/cluster_tai.zip
 cluster_zip_path_alt: /content/drive/MyDrive/TM/cluster_tai.zip
 kmeans_res_path: data/raw/kmeans.res
 kmeans_res_path_alt: /content/drive/MyDrive/TM/kmeans.res
-radius_reference_path: data/raw/sphere_radius_baselines_free_and_snap_20260506_144622.zip
-radius_reference_path_alt: /content/drive/MyDrive/TM/sphere_radius_baselines_free_and_snap_20260506_144622.zip
+radius_reference_path: data/raw/taillard_radius_reference_hybrid.zip
+radius_reference_path_alt: /content/drive/MyDrive/TM/taillard_radius_reference_hybrid.zip
 fallback_cluster_zip_globs:
 - /content/cluster_tai*.zip
 - /content/drive/My Drive/**/cluster_tai*.zip
@@ -70,3 +70,6 @@ instance_extract_dir: /content/cluster_tai_instances_final_llm
 radius_ref_extract_dir: /content/radius_references_final_llm
 artifact_base_dir: /content/drive/MyDrive/TM/llm-clustering-runs
 objective_mode: radius
+
+# Run C follows the Taillard hypersphere-volume baseline setting: centers are data points/medoids.
+center_constraint: snap_to_points
