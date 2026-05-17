@@ -1384,6 +1384,16 @@ Use Euclidean distances and cluster radii when comparing candidate solutions.
 Do not optimize SSE-style sums of squared distances internally for the radius/volume objective.
 If you maintain nearest-distance arrays, use Euclidean distances/radii that support the active radius objective.
 
+High-dimensional radius-volume warning:
+This objective becomes much harsher as dimension increases because each cluster radius is raised to the power d.
+A heuristic that is acceptable in d=2 can fail badly in d=3 or d=4 if it leaves even a few clusters with large radii.
+
+For this Run C objective, prioritize mechanisms that reduce the largest cluster radii and repair high-radius clusters, especially in d=3 and d=4.
+Do not optimize only average distance, SSE-like compactness, or 2D spread.
+When refining centers, identify clusters with the largest radius^d contribution and use bounded medoid replacements or splits to reduce those worst contributions.
+The goal is not only to improve the mean cluster quality, but to control the tail of bad cluster radii.
+
+
 Active-center requirement for radius/volume objective:
 Use all p centers effectively in the final returned solution.
 Avoid returning many centers that become empty after nearest-center assignment.
