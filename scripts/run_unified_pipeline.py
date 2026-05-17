@@ -1036,7 +1036,10 @@ display(SEARCH_DF[["name", "n", "p", "d", "instance_id", "ref_cost"]])
 print("Probe instances:")
 display(PROBE_DF[["name", "n", "p", "d", "instance_id", "ref_cost"]])
 print("Final eval instances:", len(FINAL_DF))
-display(FINAL_DF[["name", "n", "p", "d", "instance_id", "ref_cost"]].head(20))
+if len(FINAL_DF) > 0 and all(c in FINAL_DF.columns for c in ["name", "n", "p", "d", "instance_id", "ref_cost"]):
+    display(FINAL_DF[["name", "n", "p", "d", "instance_id", "ref_cost"]].head(20))
+else:
+    print("Final evaluation instance table is empty; final evaluation will be skipped.")
 
 
 
