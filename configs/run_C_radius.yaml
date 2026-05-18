@@ -73,3 +73,12 @@ objective_mode: radius
 
 # Run C follows the Taillard hypersphere-volume baseline setting: centers are data points/medoids.
 center_constraint: snap_to_points
+
+# Optional D1 sampling/decomposition mode for Run C.
+# Notebook variables override these values when using the Colab launcher.
+run_c_d1_sampling_mode: false
+run_c_d1_max_xp: 10
+run_c_d1_repair_full: true
+run_c_d1_repair_passes: 1
+run_c_d1_repair_worst_clusters: 8
+run_c_d1_repair_candidates_per_cluster: 12

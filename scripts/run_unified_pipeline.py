@@ -91,6 +91,18 @@ CFG = {
     "partial_failure_penalty": 200.0,
     "probe_weight": 0.5,
 
+    # Run C optional D1 decomposition/sampling mode. When enabled for objective_mode="radius":
+    #   - the generated heuristic receives only a uniform random sample S of size min(n, XP*p),
+    #   - returned centers are snapped/repaired to S (anti-leakage),
+    #   - the objective is still evaluated on the full instance,
+    #   - an optional bounded full-instance radius repair can be applied after sampling.
+    "run_c_d1_sampling_mode": False,
+    "run_c_d1_max_xp": 10,
+    "run_c_d1_repair_full": True,
+    "run_c_d1_repair_passes": 1,
+    "run_c_d1_repair_worst_clusters": 8,
+    "run_c_d1_repair_candidates_per_cluster": 12,
+
     # Search instances used inside LLM loop
     "search_specs": [
         {"instance_id": 1, "d": 2, "p": 20},
@@ -1357,6 +1369,65 @@ Do not optimize squared distances internally for the p-median objective.
 """.strip()
 
     if OBJECTIVE_MODE == "radius":
+        if bool(CFG.get("run_c_d1_sampling_mode", False)):
+            xp = int(CFG.get("run_c_d1_max_xp", 10))
+            repair_full = bool(CFG.get("run_c_d1_repair_full", True))
+            repair_text = (
+                "After your sample-built medoids are returned, the external evaluator will also apply a bounded "
+                "full-instance radius-aware repair step before scoring. Treat your output as a strong initialization "
+                "for that repair step; do not try to run exhaustive full-instance PAM yourself."
+                if repair_full
+                else
+                "No automatic full-instance repair is applied after your sample-built medoids. Your returned sample medoids are evaluated directly on the hidden full instance."
+            )
+            return f"""
+Active objective: Run C — radius/volume covering objective, with D1 sample-based medoid construction.
+
+Experimental setting:
+The generated heuristic does not receive the full instance.
+It receives only a uniform random sample S of size min(n_full, {xp}*p).
+The full dataset X_full is not accessible to your code.
+The returned p centers are then evaluated by an external evaluator on the full dataset X_full.
+
+Problem seen by your code:
+Given a sample S in R^d and a number p, return p centers selected from S.
+The final centers should be coordinates copied from sampled data points.
+This keeps Run C in the Taillard-style medoid/data-point setting.
+
+Official evaluation objective on the full dataset:
+Each full-data point is assigned to its nearest selected center. For each cluster j, radius_j is
+the maximum Euclidean distance from selected center j to any full-data point assigned to it.
+The objective is:
+sum_j radius_j^d,
+where d is the dimension of the instance.
+
+Center constraint and anti-leakage rule:
+For this sampling experiment, if you return free coordinates, the evaluator will snap/repair them
+to points of the sample S, not to points of the hidden full dataset.
+So the useful output is a set of p representative sampled medoids.
+
+Full-instance repair setting:
+{repair_text}
+
+Design goal:
+This is a radius/volume objective: the cost is the sum over clusters of radius_j raised to the dimension d.
+Construct p sampled medoids that generalize well from S to X_full.
+The method should be a decomposition/sampling heuristic, not a full global PAM over all n points.
+
+High-dimensional radius-volume warning:
+This objective becomes much harsher as dimension increases because each cluster radius is raised to the power d.
+A heuristic that is acceptable in d=2 can fail badly in d=3 or d=4 if it leaves even a few clusters with large radii.
+Prioritize mechanisms that reduce the largest cluster radii and repair high-radius regions, especially in d=3 and d=4.
+Do not optimize only average distance, SSE-like compactness, or 2D spread.
+The goal is not only to improve the mean cluster quality, but to control the tail of bad cluster radii.
+
+Implementation detail:
+Use Euclidean distances/radii if you compute internal objective values.
+Use sampled-point medoids and maintain exactly p active centers.
+Do not build or rely on a full n_full x n_full distance matrix; your code only sees S.
+Keep all loops explicitly bounded because this will be evaluated many times.
+""".strip()
+
         return """
 Active objective: Run C — radius/volume covering objective with medoid/data-point centers.
 
@@ -1392,7 +1463,6 @@ For this Run C objective, prioritize mechanisms that reduce the largest cluster 
 Do not optimize only average distance, SSE-like compactness, or 2D spread.
 When refining centers, identify clusters with the largest radius^d contribution and use bounded medoid replacements or splits to reduce those worst contributions.
 The goal is not only to improve the mean cluster quality, but to control the tail of bad cluster radii.
-
 
 Active-center requirement for radius/volume objective:
 Use all p centers effectively in the final returned solution.
@@ -1943,7 +2013,7 @@ Generate a fresh redesigned heuristic for the active objective.
 Keep the generated code numpy-only and respect the active center constraint:
 - sse: free centers
 - pmedian: final centers should be data points
-- radius: free centers
+- radius: final centers should be data points / medoids
 
 Return the answer in the required # Name / # Code format.
 """.strip()
@@ -2008,7 +2078,7 @@ If the parent was valid, try to lower the mean cost / mean gap versus the active
 Keep the generated code numpy-only and respect the active center constraint:
 - sse: free centers
 - pmedian: final centers should be data points
-- radius: free centers
+- radius: final centers should be data points / medoids
 
 Return the answer in the required # Name / # Code format.
 """.strip()
@@ -2020,6 +2090,7 @@ print("Unified prompt builder ready for objective:", OBJECTIVE_MODE)
 print("Selection strategy:", normalized_selection_strategy())
 print("Historical family avoidance:", CFG.get("historical_family_avoidance", False))
 print("Family novelty mode:", CFG.get("family_novelty_mode", False), "| memory limit:", CFG.get("family_memory_limit", 8), "| min attempts before avoid:", CFG.get("min_family_attempts_before_avoid", 2), "| weak threshold:", CFG.get("weak_family_score_threshold", 20.0), "| allow strong exploitation:", CFG.get("allow_strong_family_exploitation", True))
+print("Run C D1 sampling mode:", CFG.get("run_c_d1_sampling_mode", False), "| max xp:", CFG.get("run_c_d1_max_xp", 10), "| full repair:", CFG.get("run_c_d1_repair_full", True))
 print("Invalid-parent redesign:", CFG.get("invalid_parent_redesign"), "| any-invalid:", CFG.get("redesign_on_any_invalid_before_full_valid"), "| timeout:", CFG.get("redesign_on_timeout_parent"), "| expose-invalid-code:", not CFG.get("hide_invalid_parent_code", False))
 print("\n--- Objective prompt excerpt ---")
 print(objective_prompt_block())
@@ -2037,6 +2108,118 @@ def load_instance_X(row):
         expected_p=int(row["p"]),
         expected_d=int(row["d"]),
     )
+
+
+def run_c_d1_sampling_is_active():
+    return OBJECTIVE_MODE == "radius" and bool(CFG.get("run_c_d1_sampling_mode", False))
+
+
+def make_uniform_d1_sample(X, p, rng):
+    """Uniform sample S used by Run C D1 mode. The generated code only sees S."""
+    n = int(X.shape[0])
+    xp = max(1, int(CFG.get("run_c_d1_max_xp", 10)))
+    m = min(n, xp * int(p))
+    if m >= n:
+        return X.copy(), np.arange(n, dtype=int)
+    idx = rng.choice(n, size=m, replace=False)
+    return X[idx].copy(), np.asarray(idx, dtype=int)
+
+
+def snap_and_repair_to_allowed_points(allowed_points, centers, p, rng):
+    """Repair count and snap centers to the allowed set, usually the D1 sample S."""
+    allowed_points = np.asarray(allowed_points, dtype=float)
+    centers = repair_centers_count(allowed_points, centers, p, rng)
+    centers = snap_centers_to_points(
+        allowed_points,
+        centers,
+        p,
+        rng,
+        batch_size=int(CFG.get("distance_batch_size", 1024)),
+    )
+    return centers
+
+
+def radius_assignment_details(X, centers, batch_size=1024):
+    X = np.asarray(X, dtype=float)
+    centers = np.asarray(centers, dtype=float)
+    d = int(X.shape[1])
+    d2 = squared_distances_to_centers(X, centers, batch_size=batch_size)
+    labels = np.argmin(d2, axis=1)
+    min_d = np.sqrt(np.maximum(np.min(d2, axis=1), 0.0))
+    contributions = np.zeros(centers.shape[0], dtype=float)
+    radii = np.zeros(centers.shape[0], dtype=float)
+    counts = np.zeros(centers.shape[0], dtype=int)
+    for j in range(centers.shape[0]):
+        mask = labels == j
+        counts[j] = int(np.sum(mask))
+        if counts[j] > 0:
+            r = float(np.max(min_d[mask]))
+            radii[j] = r
+            contributions[j] = r ** d
+    return labels, min_d, radii, contributions, counts
+
+
+def bounded_radius_repair_full_instance(X, centers, p, rng):
+    """Bounded deterministic repair used after D1 sample construction for Run C.
+
+    It targets the clusters with largest radius^d contribution and tries a small
+    set of data-point medoid replacements from within each bad cluster. This is
+    intentionally bounded; it is not full PAM.
+    """
+    X = np.asarray(X, dtype=float)
+    centers = snap_centers_to_points(
+        X,
+        repair_centers_count(X, centers, p, rng),
+        p,
+        rng,
+        batch_size=int(CFG.get("distance_batch_size", 1024)),
+    )
+
+    batch_size = int(CFG.get("distance_batch_size", 1024))
+    max_passes = max(0, int(CFG.get("run_c_d1_repair_passes", 1)))
+    max_worst = max(1, int(CFG.get("run_c_d1_repair_worst_clusters", 8)))
+    max_candidates = max(1, int(CFG.get("run_c_d1_repair_candidates_per_cluster", 12)))
+
+    for _ in range(max_passes):
+        labels, min_d, radii, contrib, counts = radius_assignment_details(X, centers, batch_size=batch_size)
+        if not np.any(counts > 0):
+            break
+        worst = np.argsort(-contrib)[:min(max_worst, centers.shape[0])]
+        improved_any = False
+
+        for j in worst:
+            idx = np.flatnonzero(labels == j)
+            if idx.size <= 1:
+                continue
+
+            # Candidate medoids: farthest assigned points + a few random assigned points + current medoid.
+            order = idx[np.argsort(-min_d[idx])]
+            cand_idx = list(order[: min(max_candidates // 2 + 1, order.size)])
+            remaining_slots = max_candidates - len(cand_idx)
+            if remaining_slots > 0 and idx.size > len(cand_idx):
+                extra = rng.choice(idx, size=min(remaining_slots, idx.size), replace=False)
+                cand_idx.extend([int(v) for v in extra])
+
+            best_center = centers[j].copy()
+            best_local = float(contrib[j])
+            cluster_points = X[idx]
+
+            for ci in dict.fromkeys(int(v) for v in cand_idx):
+                cand = X[ci]
+                local_r = float(np.max(np.sqrt(np.maximum(np.sum((cluster_points - cand) ** 2, axis=1), 0.0))))
+                local_cost = local_r ** int(X.shape[1])
+                if local_cost + 1e-12 < best_local:
+                    best_local = local_cost
+                    best_center = cand.copy()
+
+            if not np.array_equal(best_center, centers[j]):
+                centers[j] = best_center
+                improved_any = True
+
+        if not improved_any:
+            break
+
+    return centers
 
 
 def evaluate_generated_code_on_df(code, eval_df, candidate_id, split_name):
@@ -2068,12 +2251,28 @@ def evaluate_generated_code_on_df(code, eval_df, candidate_id, split_name):
             X = load_instance_X(inst)
             timeout_s = float(CFG.get("candidate_timeout_s", 30.0))
             with wall_clock_timeout(timeout_s, label=f"candidate {candidate_id} on {name}"):
-                centers = algo(X.copy(), p, rng)
-                ev = evaluate_centers_for_mode(
-                    X, centers, p=p, ref_cost=ref_cost, rng=rng,
-                    objective_mode=OBJECTIVE_MODE,
-                    center_constraint=CENTER_CONSTRAINT,
-                )
+                if run_c_d1_sampling_is_active():
+                    sample_X, sample_idx = make_uniform_d1_sample(X, p, rng)
+                    raw_centers = algo(sample_X.copy(), p, rng)
+                    centers = snap_and_repair_to_allowed_points(sample_X, raw_centers, p, rng)
+                    if bool(CFG.get("run_c_d1_repair_full", True)):
+                        centers = bounded_radius_repair_full_instance(X, centers, p, rng)
+                    # Centers are already sample/full data-point medoids. Evaluate without snapping to hidden full data
+                    # unless the explicit full repair has moved them to full-instance medoids.
+                    ev = evaluate_centers_for_mode(
+                        X, centers, p=p, ref_cost=ref_cost, rng=rng,
+                        objective_mode=OBJECTIVE_MODE,
+                        center_constraint="free",
+                    )
+                    d1_sample_size = int(sample_X.shape[0])
+                else:
+                    centers = algo(X.copy(), p, rng)
+                    ev = evaluate_centers_for_mode(
+                        X, centers, p=p, ref_cost=ref_cost, rng=rng,
+                        objective_mode=OBJECTIVE_MODE,
+                        center_constraint=CENTER_CONSTRAINT,
+                    )
+                    d1_sample_size = np.nan
             runtime = time.time() - t0
             row.update({
                 "valid": True,
@@ -2086,6 +2285,10 @@ def evaluate_generated_code_on_df(code, eval_df, candidate_id, split_name):
                 "nonempty_clusters": ev.get("nonempty_clusters", np.nan),
                 "runtime_s": runtime,
                 "center_count": int(ev["centers"].shape[0]),
+                "run_c_d1_sampling_mode": bool(run_c_d1_sampling_is_active()),
+                "run_c_d1_sample_size": d1_sample_size,
+                "run_c_d1_max_xp": int(CFG.get("run_c_d1_max_xp", 10)),
+                "run_c_d1_repair_full": bool(CFG.get("run_c_d1_repair_full", True)),
             })
         except Exception as e:
             row.update({

@@ -32,3 +32,12 @@ def test_historical_family_avoidance_mentions_run_c_high_dimensional_probe_risk_
     assert "d=3/d=4" in text
     assert "VolumeCoveringHeuristic" in text
     assert "medoids" in text
+
+
+def test_radius_d1_sampling_prompt_exposes_sample_and_medoid_rules():
+    text = objective_prompt_block("radius", run_c_d1_sampling_mode=True, run_c_d1_max_xp=10, run_c_d1_repair_full=True)
+    assert "D1 sample-based medoid construction" in text
+    assert "min(n_full, 10*p)" in text
+    assert "full dataset X_full is not accessible" in text
+    assert "points of the sample S" in text
+    assert "bounded full-instance radius-aware repair" in text

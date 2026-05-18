@@ -9,7 +9,12 @@ SYSTEM_PROMPT = (
 )
 
 
-def objective_prompt_block(objective_mode: str) -> str:
+def objective_prompt_block(
+    objective_mode: str,
+    run_c_d1_sampling_mode: bool = False,
+    run_c_d1_max_xp: int = 10,
+    run_c_d1_repair_full: bool = True,
+) -> str:
     objective_mode = objective_mode.lower().strip()
     if objective_mode == "sse":
         return """
@@ -54,6 +59,64 @@ Do not optimize squared distances internally for the p-median objective.
 """.strip()
 
     if objective_mode == "radius":
+        if run_c_d1_sampling_mode:
+            xp = int(run_c_d1_max_xp)
+            repair_text = (
+                "After your sample-built medoids are returned, the external evaluator will also apply a bounded "
+                "full-instance radius-aware repair step before scoring. Treat your output as a strong initialization "
+                "for that repair step; do not try to run exhaustive full-instance PAM yourself."
+                if run_c_d1_repair_full
+                else
+                "No automatic full-instance repair is applied after your sample-built medoids. Your returned sample medoids are evaluated directly on the hidden full instance."
+            )
+            return f"""
+Active objective: Run C — radius/volume covering objective, with D1 sample-based medoid construction.
+
+Experimental setting:
+The generated heuristic does not receive the full instance.
+It receives only a uniform random sample S of size min(n_full, {xp}*p).
+The full dataset X_full is not accessible to your code.
+The returned p centers are then evaluated by an external evaluator on the full dataset X_full.
+
+Problem seen by your code:
+Given a sample S in R^d and a number p, return p centers selected from S.
+The final centers should be coordinates copied from sampled data points.
+This keeps Run C in the Taillard-style medoid/data-point setting.
+
+Official evaluation objective on the full dataset:
+Each full-data point is assigned to its nearest selected center. For each cluster j, radius_j is
+the maximum Euclidean distance from selected center j to any full-data point assigned to it.
+The objective is:
+sum_j radius_j^d,
+where d is the dimension of the instance.
+
+Center constraint and anti-leakage rule:
+For this sampling experiment, if you return free coordinates, the evaluator will snap/repair them
+to points of the sample S, not to points of the hidden full dataset.
+So the useful output is a set of p representative sampled medoids.
+
+Full-instance repair setting:
+{repair_text}
+
+Design goal:
+This is a radius/volume objective: the cost is the sum over clusters of radius_j raised to the dimension d.
+Construct p sampled medoids that generalize well from S to X_full.
+The method should be a decomposition/sampling heuristic, not a full global PAM over all n points.
+
+High-dimensional radius-volume warning:
+This objective becomes much harsher as dimension increases because each cluster radius is raised to the power d.
+A heuristic that is acceptable in d=2 can fail badly in d=3 or d=4 if it leaves even a few clusters with large radii.
+Prioritize mechanisms that reduce the largest cluster radii and repair high-radius regions, especially in d=3 and d=4.
+Do not optimize only average distance, SSE-like compactness, or 2D spread.
+The goal is not only to improve the mean cluster quality, but to control the tail of bad cluster radii.
+
+Implementation detail:
+Use Euclidean distances/radii if you compute internal objective values.
+Use sampled-point medoids and maintain exactly p active centers.
+Do not build or rely on a full n_full x n_full distance matrix; your code only sees S.
+Keep all loops explicitly bounded because this will be evaluated many times.
+""".strip()
+
         return """
 Active objective: Run C — radius/volume covering objective with medoid/data-point centers.
 
@@ -81,6 +144,15 @@ Use Euclidean distances and cluster radii when comparing candidate solutions.
 Do not optimize SSE-style sums of squared distances internally for the radius/volume objective.
 If you maintain nearest-distance arrays, use Euclidean distances/radii that support the active radius objective.
 
+High-dimensional radius-volume warning:
+This objective becomes much harsher as dimension increases because each cluster radius is raised to the power d.
+A heuristic that is acceptable in d=2 can fail badly in d=3 or d=4 if it leaves even a few clusters with large radii.
+
+For this Run C objective, prioritize mechanisms that reduce the largest cluster radii and repair high-radius clusters, especially in d=3 and d=4.
+Do not optimize only average distance, SSE-like compactness, or 2D spread.
+When refining centers, identify clusters with the largest radius^d contribution and use bounded medoid replacements or splits to reduce those worst contributions.
+The goal is not only to improve the mean cluster quality, but to control the tail of bad cluster radii.
+
 Active-center requirement for radius/volume objective:
 Use all p centers effectively in the final returned solution.
 Avoid returning many centers that become empty after nearest-center assignment.
@@ -90,11 +162,16 @@ Do not discard or merge centers unless you also introduce replacements so the fi
     raise ValueError(objective_mode)
 
 
-def base_task_prompt(objective_mode: str) -> str:
+def base_task_prompt(
+    objective_mode: str,
+    run_c_d1_sampling_mode: bool = False,
+    run_c_d1_max_xp: int = 10,
+    run_c_d1_repair_full: bool = True,
+) -> str:
     return f"""
 Your task is to design a novel heuristic algorithm for the following clustering optimization problem.
 
-{objective_prompt_block(objective_mode)}
+{objective_prompt_block(objective_mode, run_c_d1_sampling_mode, run_c_d1_max_xp, run_c_d1_repair_full)}
 
 Interface:
 The generated Python code must define exactly one class named ClusteringHeuristic:

@@ -112,6 +112,11 @@ def build_runtime_config_from_notebook_globals(
     cfg["weak_family_score_threshold"] = float(notebook_globals.get("WEAK_FAMILY_SCORE_THRESHOLD", 20.0))
     cfg["allow_strong_family_exploitation"] = bool(notebook_globals.get("ALLOW_STRONG_FAMILY_EXPLOITATION", True))
 
+    # Run C D1 sampling/decomposition mode. These switches are ignored for Runs A/B.
+    cfg["run_c_d1_sampling_mode"] = bool(notebook_globals.get("RUN_C_D1_SAMPLING_MODE", False))
+    cfg["run_c_d1_max_xp"] = int(notebook_globals.get("RUN_C_D1_MAX_XP", 10))
+    cfg["run_c_d1_repair_full"] = bool(notebook_globals.get("RUN_C_D1_REPAIR_FULL", True))
+
     cfg["invalid_parent_redesign"] = bool(
         _require(notebook_globals, "INVALID_PARENT_REDESIGN")
     )
@@ -181,6 +186,9 @@ def build_runtime_config_from_notebook_globals(
         "min_family_attempts_before_avoid": cfg.get("min_family_attempts_before_avoid", 2),
         "weak_family_score_threshold": cfg.get("weak_family_score_threshold", 20.0),
         "allow_strong_family_exploitation": cfg.get("allow_strong_family_exploitation", True),
+        "run_c_d1_sampling_mode": cfg.get("run_c_d1_sampling_mode", False),
+        "run_c_d1_max_xp": cfg.get("run_c_d1_max_xp", 10),
+        "run_c_d1_repair_full": cfg.get("run_c_d1_repair_full", True),
         "hide_invalid_parent_code": cfg["hide_invalid_parent_code"],
         "artifact_base_dir": cfg["artifact_base_dir"],
         "runtime_config_path": str(runtime_config_path),
