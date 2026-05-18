@@ -1395,34 +1395,48 @@ The objective is:
 sum_j radius_j^d,
 where d is the dimension of the instance.
 
-Required decomposition/sampling structure:
+Required Taillard-inspired hybrid scaffold:
+You must follow this structure. You may vary the bounded implementation details, but you may not omit any phase.
+
+Phase 1 — representative sampling:
 1. Select a representative sample S of at most min(n, {xp}*p) points from X.
-2. Build an initial set of p medoids from S.
-3. Evaluate assignments on the full X and identify clusters with the largest radius_j^d contribution.
-4. Perform a bounded full-instance repair using X, for example by replacing medoids in high-radius clusters with selected data points from those clusters.
-5. Return exactly p active medoids selected from X.
+2. Keep the sample indices, so medoids selected on S can be mapped back to points of X.
+3. Prefer a sample that covers spread and extremes; do not use only the first points or a purely local sample.
 
+Phase 2 — bounded PAM-like construction on the sample:
+4. Build p initial medoids on S.
+5. Improve those sample medoids with a bounded PAM-like selected-point procedure on S:
+   - assign sampled points to their nearest sampled medoid;
+   - score sample solutions with the radius-volume objective, not SSE and not average distance;
+   - try only a bounded shortlist of candidate replacements from S;
+   - accept replacements that reduce the sample radius-volume cost or reduce the worst sample cluster radius contribution.
+6. Map the final sample medoids back to medoids in the full dataset X.
 
-Repair requirement:
-The generated heuristic must perform at least one full-instance repair phase after sample initialization.
-After constructing initial medoids from the sample, assign all points in X to the current medoids.
-Compute each cluster's radius_j^d contribution.
-Perform 1 to 3 bounded repair rounds.
-In each round:
-- select at most min(8, p) clusters with largest radius_j^d contribution;
-- for each selected cluster, test at most 20 candidate replacement medoids from points assigned to that cluster, prioritizing farthest points and central points among the worst-radius region;
-- accept a replacement only if it reduces the full radius-volume objective or the worst cluster radius contribution.
-Do not skip this repair phase.
+Phase 3 — kmedian-like full-instance radius refinement:
+7. Assign every point in X to its nearest current medoid.
+8. Compute each cluster's radius_j^d contribution on the full X.
+9. Perform 1 to 3 bounded full-instance repair rounds.
+10. In each repair round:
+   - select at most min(8, p) clusters with largest radius_j^d contribution;
+   - for each selected cluster, test at most 20 candidate replacement medoids from points assigned to that cluster;
+   - candidates should include farthest assigned points and central/representative points from the same high-radius cluster;
+   - accept a replacement only if it reduces that cluster's radius^d contribution or the full radius-volume objective.
+11. Return exactly p active medoids selected from X.
+
+Mandatory behavior:
+The generated heuristic must perform both the sample PAM-like construction phase and the full-instance kmedian-like radius refinement phase.
+Do not skip the full-instance repair phase.
 Do not return immediately after sample initialization.
-
+Do not generate a pure farthest-first, pure nucleation, or sample-only method.
+Do not optimize SSE, average distance, or centroid movement.
 Do not run exhaustive full PAM over all n points.
 Do not build or rely on a full n x n distance matrix.
-All full-instance repair loops must be explicitly bounded.
+All sample-improvement and full-instance repair loops must be explicitly bounded.
 
 Design goal:
 This is a radius/volume objective: the cost is the sum over clusters of radius_j raised to the dimension d.
-The method should be a hybrid decomposition heuristic: sample-based initialization followed by LLM-generated full-instance radius repair.
-This is conceptually similar to a sampling/hybrid method, but the generated code must implement the logic itself.
+The method should be a scaffolded hybrid decomposition heuristic: bounded PAM-like construction on a small sample, followed by LLM-generated kmedian-like radius refinement on the full instance.
+This is conceptually inspired by the known sample-PAM plus full-refinement hybrid structure, but the generated code must implement its own bounded numpy variant inside this scaffold.
 
 High-dimensional radius-volume warning:
 This objective becomes much harsher as dimension increases because each cluster radius is raised to the power d.
