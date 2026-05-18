@@ -81,6 +81,7 @@ def test_build_runtime_config_smoke_test_forces_one_attempt(tmp_path):
     assert written["run_c_d1_sampling_mode"] is True
     assert written["run_c_d1_max_xp"] == 10
     assert written["run_c_d1_repair_full"] is True
+    assert written["run_c_d1_mode_label"] == "hybrid_llm_full_repair"
     assert written["cluster_zip_path"] == "/tmp/cluster_tai.zip"
     assert written["cluster_zip_path_alt"] == "/tmp/cluster_tai.zip"
 

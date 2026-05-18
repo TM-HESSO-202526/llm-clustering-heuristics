@@ -113,9 +113,16 @@ def build_runtime_config_from_notebook_globals(
     cfg["allow_strong_family_exploitation"] = bool(notebook_globals.get("ALLOW_STRONG_FAMILY_EXPLOITATION", True))
 
     # Run C D1 sampling/decomposition mode. These switches are ignored for Runs A/B.
+    # - sampling_mode=False: C-direct, LLM sees full X with no explicit sampling structure.
+    # - sampling_mode=True and repair_full=False: C-D1-sample-only, LLM sees only sample S.
+    # - sampling_mode=True and repair_full=True: C-D1-hybrid, LLM sees full X and must sample+repair itself.
     cfg["run_c_d1_sampling_mode"] = bool(notebook_globals.get("RUN_C_D1_SAMPLING_MODE", False))
     cfg["run_c_d1_max_xp"] = int(notebook_globals.get("RUN_C_D1_MAX_XP", 10))
     cfg["run_c_d1_repair_full"] = bool(notebook_globals.get("RUN_C_D1_REPAIR_FULL", True))
+    cfg["run_c_d1_mode_label"] = (
+        "off" if not cfg["run_c_d1_sampling_mode"]
+        else ("hybrid_llm_full_repair" if cfg["run_c_d1_repair_full"] else "sample_only")
+    )
 
     cfg["invalid_parent_redesign"] = bool(
         _require(notebook_globals, "INVALID_PARENT_REDESIGN")
