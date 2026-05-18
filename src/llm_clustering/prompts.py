@@ -91,6 +91,19 @@ Required decomposition/sampling structure:
 4. Perform a bounded full-instance repair using X, for example by replacing medoids in high-radius clusters with selected data points from those clusters.
 5. Return exactly p active medoids selected from X.
 
+
+Repair requirement:
+The generated heuristic must perform at least one full-instance repair phase after sample initialization.
+After constructing initial medoids from the sample, assign all points in X to the current medoids.
+Compute each cluster's radius_j^d contribution.
+Perform 1 to 3 bounded repair rounds.
+In each round:
+- select at most min(8, p) clusters with largest radius_j^d contribution;
+- for each selected cluster, test at most 20 candidate replacement medoids from points assigned to that cluster, prioritizing farthest points and central points among the worst-radius region;
+- accept a replacement only if it reduces the full radius-volume objective or the worst cluster radius contribution.
+Do not skip this repair phase.
+Do not return immediately after sample initialization.
+
 Do not run exhaustive full PAM over all n points.
 Do not build or rely on a full n x n distance matrix.
 All full-instance repair loops must be explicitly bounded.
