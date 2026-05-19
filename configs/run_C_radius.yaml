@@ -74,17 +74,14 @@ objective_mode: radius
 # Run C follows the Taillard hypersphere-volume baseline setting: centers are data points/medoids.
 center_constraint: snap_to_points
 
-# Optional D1 sampling/decomposition mode for Run C.
-# Notebook variables override these values when using the Colab launcher.
-# run_c_d1_sampling_mode: false -> C-direct: LLM sees full X, no explicit sampling constraint.
-# run_c_d1_sampling_mode: true and run_c_d1_repair_full: false -> C-D1-sample-only:
-#   backend gives only sample S to the LLM; output sample medoids are evaluated on full X.
-# run_c_d1_sampling_mode: true and run_c_d1_repair_full: true -> C-D1-hybrid:
-#   LLM sees full X, must internally sample <= XP*p, then perform its own bounded full-X repair.
-run_c_d1_sampling_mode: false
-run_c_d1_max_xp: 10
-run_c_d1_repair_full: true
-# Legacy backend repair knobs are kept for compatibility, but the main C-D1-hybrid mode now expects the LLM to own the repair phase.
-run_c_d1_repair_passes: 1
-run_c_d1_repair_worst_clusters: 8
-run_c_d1_repair_candidates_per_cluster: 12
+# Optional sampling/decomposition mode. Notebook variables override these values.
+# sampling_mode matches the week-13 protocol: the LLM sees only sample S of size
+# min(n_full, sampling_max_xp*p), and the returned centers are evaluated on the hidden
+# full instance. Run A keeps free centers; Run B and Run C snap/repair centers to sample S.
+sampling_mode: false
+sampling_max_xp: 10
+# Kept only for backward-compatible artifact/config parsers. It is not exposed in the notebook.
+sampling_repair_full: false
+sampling_repair_passes: 1
+sampling_repair_worst_clusters: 8
+sampling_repair_candidates_per_cluster: 12

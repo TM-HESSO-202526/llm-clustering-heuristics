@@ -112,17 +112,26 @@ def build_runtime_config_from_notebook_globals(
     cfg["weak_family_score_threshold"] = float(notebook_globals.get("WEAK_FAMILY_SCORE_THRESHOLD", 20.0))
     cfg["allow_strong_family_exploitation"] = bool(notebook_globals.get("ALLOW_STRONG_FAMILY_EXPLOITATION", True))
 
-    # Run C D1 sampling/decomposition mode. These switches are ignored for Runs A/B.
-    # - sampling_mode=False: C-direct, LLM sees full X with no explicit sampling structure.
-    # - sampling_mode=True and repair_full=False: C-D1-sample-only, LLM sees only sample S.
-    # - sampling_mode=True and repair_full=True: C-D1-hybrid, LLM sees full X and must sample+repair itself.
-    cfg["run_c_d1_sampling_mode"] = bool(notebook_globals.get("RUN_C_D1_SAMPLING_MODE", False))
-    cfg["run_c_d1_max_xp"] = int(notebook_globals.get("RUN_C_D1_MAX_XP", 10))
-    cfg["run_c_d1_repair_full"] = bool(notebook_globals.get("RUN_C_D1_REPAIR_FULL", True))
-    cfg["run_c_d1_mode_label"] = (
-        "off" if not cfg["run_c_d1_sampling_mode"]
-        else ("hybrid_llm_full_repair" if cfg["run_c_d1_repair_full"] else "sample_only")
-    )
+    # Global prompt-only sampling/decomposition mode.
+    # SAMPLING_MODE means the generated heuristic receives the full instance X,
+    # but the prompt requires it to internally sample at most SAMPLING_MAX_XP*p
+    # points, build an initial solution from that sample, and then perform its own
+    # bounded full-instance refinement. The evaluator does not create a sample and
+    # does not apply any hidden repair/refinement.
+    sampling_mode = bool(notebook_globals.get("SAMPLING_MODE", False))
+    sampling_max_xp = int(notebook_globals.get("SAMPLING_MAX_XP", 10))
+
+    cfg["sampling_mode"] = sampling_mode
+    cfg["sampling_max_xp"] = sampling_max_xp
+    cfg["sampling_repair_full"] = False
+
+    # Backward-compatible Run C D1 keys for older artifact parsers.
+    cfg["run_c_d1_sampling_mode"] = sampling_mode
+    cfg["run_c_d1_max_xp"] = sampling_max_xp
+    cfg["run_c_d1_repair_full"] = False
+    sampling_mode_label = "prompt_internal_hybrid" if sampling_mode else "off"
+    cfg["sampling_mode_label"] = sampling_mode_label
+    cfg["run_c_d1_mode_label"] = sampling_mode_label
 
     cfg["invalid_parent_redesign"] = bool(
         _require(notebook_globals, "INVALID_PARENT_REDESIGN")
@@ -193,9 +202,9 @@ def build_runtime_config_from_notebook_globals(
         "min_family_attempts_before_avoid": cfg.get("min_family_attempts_before_avoid", 2),
         "weak_family_score_threshold": cfg.get("weak_family_score_threshold", 20.0),
         "allow_strong_family_exploitation": cfg.get("allow_strong_family_exploitation", True),
-        "run_c_d1_sampling_mode": cfg.get("run_c_d1_sampling_mode", False),
-        "run_c_d1_max_xp": cfg.get("run_c_d1_max_xp", 10),
-        "run_c_d1_repair_full": cfg.get("run_c_d1_repair_full", True),
+        "sampling_mode": cfg.get("sampling_mode", False),
+        "sampling_max_xp": cfg.get("sampling_max_xp", 10),
+        "sampling_mode_label": cfg.get("sampling_mode_label", "off"),
         "hide_invalid_parent_code": cfg["hide_invalid_parent_code"],
         "artifact_base_dir": cfg["artifact_base_dir"],
         "runtime_config_path": str(runtime_config_path),

@@ -32,9 +32,8 @@ def _base_globals(tmp_path: Path, smoke_test: bool = True):
         "MIN_FAMILY_ATTEMPTS_BEFORE_AVOID": 2,
         "WEAK_FAMILY_SCORE_THRESHOLD": 20.0,
         "ALLOW_STRONG_FAMILY_EXPLOITATION": True,
-        "RUN_C_D1_SAMPLING_MODE": True,
-        "RUN_C_D1_MAX_XP": 10,
-        "RUN_C_D1_REPAIR_FULL": True,
+        "SAMPLING_MODE": True,
+        "SAMPLING_MAX_XP": 10,
         "INVALID_PARENT_REDESIGN": True,
         "REDESIGN_ON_ANY_INVALID_BEFORE_FULL_VALID": True,
         "REDESIGN_ON_TIMEOUT_PARENT": True,
@@ -78,10 +77,15 @@ def test_build_runtime_config_smoke_test_forces_one_attempt(tmp_path):
     assert written["min_family_attempts_before_avoid"] == 2
     assert written["weak_family_score_threshold"] == 20.0
     assert written["allow_strong_family_exploitation"] is True
+    assert written["sampling_mode"] is True
+    assert written["sampling_max_xp"] == 10
+    assert written["sampling_repair_full"] is False
+    assert written["sampling_mode_label"] == "prompt_internal_hybrid"
+    # Backward-compatible artifact/config aliases are still written for older parsers.
     assert written["run_c_d1_sampling_mode"] is True
     assert written["run_c_d1_max_xp"] == 10
-    assert written["run_c_d1_repair_full"] is True
-    assert written["run_c_d1_mode_label"] == "hybrid_llm_full_repair"
+    assert written["run_c_d1_repair_full"] is False
+    assert written["run_c_d1_mode_label"] == "prompt_internal_hybrid"
     assert written["cluster_zip_path"] == "/tmp/cluster_tai.zip"
     assert written["cluster_zip_path_alt"] == "/tmp/cluster_tai.zip"
 

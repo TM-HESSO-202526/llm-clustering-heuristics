@@ -34,20 +34,32 @@ def test_historical_family_avoidance_mentions_run_c_high_dimensional_probe_risk_
     assert "medoids" in text
 
 
-def test_radius_d1_sample_only_prompt_exposes_sample_and_medoid_rules():
-    text = objective_prompt_block("radius", run_c_d1_sampling_mode=True, run_c_d1_max_xp=10, run_c_d1_repair_full=False)
-    assert "D1 sample-only medoid construction" in text
-    assert "min(n_full, 10*p)" in text
-    assert "X_full is not accessible" in text
-    assert "points of the sample S" in text
-    assert "No automatic backend full-instance repair" in text
-
-
-def test_radius_d1_hybrid_prompt_exposes_full_x_sample_then_repair_rules():
-    text = objective_prompt_block("radius", run_c_d1_sampling_mode=True, run_c_d1_max_xp=10, run_c_d1_repair_full=True)
-    assert "D1 hybrid decomposition/sampling" in text
+def test_sse_sampling_prompt_exposes_prompt_only_hybrid_rules():
+    text = objective_prompt_block("sse", sampling_mode=True, sampling_max_xp=10)
+    assert "Run A" in text
+    assert "prompt-only hybrid sampling/decomposition" in text
+    assert "min(n, 10*p)" in text
     assert "receives the full instance X" in text
-    assert "at most min(n, 10*p)" in text
+    assert "full-instance SSE refinement" in text
+    assert "Centers are free coordinates" in text
+
+
+def test_pmedian_sampling_prompt_exposes_prompt_only_hybrid_rules():
+    text = objective_prompt_block("pmedian", sampling_mode=True, sampling_max_xp=10)
+    assert "Run B" in text
+    assert "prompt-only hybrid sampling/decomposition" in text
+    assert "min(n, 10*p)" in text
+    assert "receives the full instance X" in text
+    assert "full-instance p-median refinement" in text
+    assert "not squared distances" in text
+
+
+def test_radius_sampling_prompt_exposes_prompt_only_hybrid_medoid_rules():
+    text = objective_prompt_block("radius", sampling_mode=True, sampling_max_xp=10)
+    assert "Run C" in text
+    assert "prompt-only hybrid sampling/decomposition" in text
+    assert "min(n, 10*p)" in text
+    assert "receives the full instance X" in text
     assert "full-instance radius-volume repair" in text
-    assert "LLM-generated code is responsible for both phases" in text
-    assert "Do not build or rely on a full n x n distance matrix" in text
+    assert "data-point medoids" in text
+    assert "No evaluator-side sampling" in text or "does not apply any hidden sampling" in text
