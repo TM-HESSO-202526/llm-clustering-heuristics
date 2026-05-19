@@ -77,13 +77,6 @@ Official evaluation objective on the full dataset:
 Minimize the sum of squared Euclidean distances from each full-data point to its nearest returned center:
 sum_i min_j ||x_i - c_j||^2.
 
-Required decomposition/refinement structure:
-1. Select a representative sample S of at most min(n, {xp}*p) points from X.
-2. Build p initial free centers from S, for example using spread, density, coreset, or sample k-means-like logic.
-3. Evaluate assignments on the full X.
-4. Perform a bounded full-instance SSE-compatible refinement using X, such as a small fixed number of Lloyd-like assignment/update rounds or targeted center updates.
-5. Return exactly p centers.
-
 Design goal:
 This is an SSE/k-means objective: the cost is the sum of squared Euclidean distances to the closest returned center.
 The method should be a hybrid decomposition heuristic: sample-based initialization followed by LLM-generated full-instance SSE refinement.
@@ -126,14 +119,6 @@ Official evaluation objective on the full dataset:
 Minimize the sum of Euclidean distances from each full-data point to its nearest selected center:
 sum_i min_j ||x_i - c_j||.
 
-Required decomposition/refinement structure:
-1. Select a representative sample S of at most min(n, {xp}*p) points from X.
-2. Build p initial sampled medoids from S.
-3. Map the sampled medoids back to data points in X.
-4. Evaluate assignments or nearest-medoid distances on the full X.
-5. Perform bounded full-instance p-median refinement using X, for example by replacing selected medoids with candidate data points from high-contribution regions.
-6. Return exactly p selected data-point medoids from X.
-
 Design goal:
 This is a p-median objective: the cost is the sum of Euclidean distances to the closest selected data point.
 The method should be a hybrid decomposition heuristic: sample-based medoid initialization followed by LLM-generated full-instance p-median refinement.
@@ -142,7 +127,8 @@ Implementation detail for p-median:
 Use Euclidean distances, not squared distances, as the main internal objective.
 Maintain min_dist of shape (n,), where min_dist[i] is the Euclidean distance from X[i] to its nearest selected center, if you compute assignment distances internally.
 Do not build or rely on a full n x n distance matrix.
-Avoid exhaustive all-point swap searches; keep all sample-improvement and full-instance refinement loops explicitly bounded.
+Avoid exhaustive all-point swap searches.
+Keep all sample construction and full-instance refinement loops explicitly bounded because this will be evaluated many times.
 """.strip()
         return """
 Active objective: Run B — p-median / sum of Euclidean distances.
@@ -195,16 +181,6 @@ Each full-data point is assigned to its nearest selected center. For each cluste
 sum_j radius_j^d,
 where d is the dimension of the instance.
 
-Required decomposition/refinement structure:
-1. Select a representative sample S of at most min(n, {xp}*p) points from X.
-2. Build p initial sampled medoids from S.
-3. Map the sampled medoids back to data points in X.
-4. Assign every point in X to its nearest current medoid.
-5. Compute each cluster's radius_j^d contribution on the full X.
-6. Perform 1 to 3 bounded full-instance repair rounds. In each round, select a small number of clusters with largest radius_j^d contribution and test a bounded shortlist of candidate replacement medoids from X, preferably from high-radius clusters.
-7. Accept replacements only if they reduce the full radius-volume objective or the worst cluster radius contribution.
-8. Return exactly p active selected data-point medoids from X.
-
 Design goal:
 This is a radius/volume objective: the cost is the sum over clusters of radius_j raised to the dimension d.
 The method should be a hybrid decomposition heuristic: sample-based medoid initialization followed by LLM-generated full-instance radius-volume repair.
@@ -219,7 +195,8 @@ Implementation detail:
 Use Euclidean distances/radii if you compute internal objective values.
 Use data-point medoids and maintain exactly p active centers.
 Do not build or rely on a full n x n distance matrix.
-Avoid exhaustive full PAM over all n points; keep all sample-improvement and full-instance repair loops explicitly bounded.
+Avoid exhaustive full PAM over all n points.
+Keep all sample construction and full-instance refinement loops explicitly bounded because this will be evaluated many times.
 """.strip()
 
         return """
