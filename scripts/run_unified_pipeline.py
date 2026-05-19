@@ -1992,6 +1992,29 @@ def objective_redesign_instruction(parent_timed_out=False):
     return header
 
 
+def _is_valid_path_value(x):
+    """Return True only for non-empty filesystem path values.
+
+    Pandas rows can store missing values as NaN floats. Those values are
+    truthy enough to reach os.path.exists(), but os.path.exists(np.nan)
+    raises TypeError. This helper keeps invalid/partial-parent prompt building
+    robust when a failed attempt has no saved code_path.
+    """
+    if x is None:
+        return False
+    try:
+        if pd.isna(x):
+            return False
+    except Exception:
+        pass
+    if not isinstance(x, (str, bytes, os.PathLike)):
+        return False
+    try:
+        return str(x).strip() != ""
+    except Exception:
+        return False
+
+
 def build_prompt(iteration, attempts_df):
     parent, reason = select_parent(attempts_df)
 
@@ -2022,7 +2045,11 @@ Generate the first heuristic for this active objective now.
 
     code_path = parent.get("code_path", "")
     parent_code = ""
-    if (not invalid_redesign_mode or not bool(CFG.get("hide_invalid_parent_code", True))) and code_path and os.path.exists(code_path):
+    if (
+        (not invalid_redesign_mode or not bool(CFG.get("hide_invalid_parent_code", True)))
+        and _is_valid_path_value(code_path)
+        and os.path.exists(code_path)
+    ):
         with open(code_path, "r", encoding="utf-8") as f:
             parent_code = f.read()
 
