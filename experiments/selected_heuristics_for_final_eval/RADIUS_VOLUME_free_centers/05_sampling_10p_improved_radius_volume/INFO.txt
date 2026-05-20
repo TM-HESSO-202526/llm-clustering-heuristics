@@ -1,0 +1,32 @@
+Label: Strict 10p ImprovedRadiusVolumeHeuristic
+Objective folder: RADIUS_VOLUME_free_centers
+Algorithm name in logs: ImprovedRadiusVolumeHeuristic
+Mechanism summary: 10p sample-based radius-volume construction with lightweight radius/volume refinement.
+Why included: Best strict 10p radius-volume sampling candidate, but quality is poor; useful negative/control example.
+
+Primary metrics from source CSV:
+  candidate_id: 6
+  sample_multiplier_run: 10
+  valid_cases: 72
+  total_cases: 72
+  mean_gap_ref_pct: 135.231
+  std_gap_ref_pct: 80.1663
+  mean_cost: 2.91734e+07
+  mean_sse: 1.37606e+06
+  mean_dist_sum: 62229.8
+  mean_radius_power_cost: 2.91734e+07
+  mean_max_radius: 42.2285
+  mean_nonempty_clusters: 49.2083
+  mean_runtime_total_s: 1.08517
+  mean_runtime_construct_s: 1.04905
+  mean_runtime_eval_s: 0.0323668
+  mean_sample_size: 492.083
+  selection_score: 105.781
+  code_path: /content/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_10p/codes/iter_006_fdb4d0b37253024f2fee.py
+  algo_name: ImprovedRadiusVolumeHeuristic
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_10p/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_10p
+Original logged code_path: /content/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_10p/codes/iter_006_fdb4d0b37253024f2fee.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_10p/codes/iter_006_fdb4d0b37253024f2fee.py
+Copied code file name: iter_006_fdb4d0b37253024f2fee.py

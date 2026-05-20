@@ -1,0 +1,28 @@
+Label: 10p enhanced farthest-point sample p-median
+Objective folder: P_MEDIAN_data_point_centers
+Algorithm name in logs: Sample-Based p-Median Heuristic with Enhanced Farthest Point Clustering and Voronoi Refining
+Mechanism summary: Enhanced farthest-point clustering on a 10p sample with Voronoi/medoid refinement.
+Why included: Representative of the same successful sample p-median family.
+
+Primary metrics from source CSV:
+  candidate_id: 36
+  valid_cases: 72
+  total_cases: 72
+  mean_gap_ref_pct: 10.9378
+  std_gap_ref_pct: 3.35128
+  mean_cost: 53553.5
+  mean_sse: 1.04058e+06
+  mean_dist_sum: 53553.5
+  mean_runtime_total_s: 0.145297
+  mean_runtime_construct_s: 0.107761
+  mean_runtime_eval_s: 0.0295531
+  mean_sample_size: 492.083
+  selection_score: 13.7443
+  code_path: /content/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/codes/iter_036_556e45181863df75823f.py
+  algo_name: Sample-Based p-Median Heuristic with Enhanced Farthest Point Clustering and Voronoi Refining
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/1 - 10p Run B 1+1/__unzipped__llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/1 - 10p Run B 1+1/__unzipped__llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111
+Original logged code_path: /content/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/codes/iter_036_556e45181863df75823f.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/1 - 10p Run B 1+1/__unzipped__llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/codes/iter_036_556e45181863df75823f.py
+Copied code file name: iter_036_556e45181863df75823f.py

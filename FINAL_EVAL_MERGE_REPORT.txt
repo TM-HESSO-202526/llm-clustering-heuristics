@@ -1,0 +1,19 @@
+Final evaluation pipeline merge report
+======================================
+
+This repository copy was produced by adding the final thesis evaluation files to the uploaded llm-clustering-heuristics repo.
+
+No existing generation/LLM-loop files were modified. In particular, the unified LLM pipeline, prompt logic, notebook runtime, source package, and existing configs were left unchanged.
+
+Added top-level files/folders:
+- README_FINAL_EVAL_OVERLAY.md
+- FINAL_EVAL_MERGE_REPORT.txt
+- requirements-final-eval.txt
+- configs/final_eval.yaml
+- docs/final_evaluation_protocol.md
+- scripts/run_final_evaluation.py
+- experiments/selected_heuristics_for_final_eval/
+
+The selected heuristics are copied under experiments/selected_heuristics_for_final_eval/ and grouped by objective.
+
+Update: Removed the exposed final-evaluation scoring batch control. Final scoring now computes full distance matrices directly; a memory-saving option can be reintroduced later if needed.

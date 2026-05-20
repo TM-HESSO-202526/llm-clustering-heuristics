@@ -1,0 +1,28 @@
+Label: 10p iterative farthest variant, faster candidate
+Objective folder: P_MEDIAN_data_point_centers
+Algorithm name in logs: Enhanced Sample-Based p-Median Heuristic with Iterative Farthest Point Clustering and Voronoi Refining
+Mechanism summary: Another iterative farthest-point/Voronoi sample medoid variant.
+Why included: Very close to the best 10p p-median result, with low runtime; included because it was explicitly mentioned among top sample candidates.
+
+Primary metrics from source CSV:
+  candidate_id: 23
+  valid_cases: 72
+  total_cases: 72
+  mean_gap_ref_pct: 10.7404
+  std_gap_ref_pct: 3.44897
+  mean_cost: 53527.1
+  mean_sse: 1.03975e+06
+  mean_dist_sum: 53527.1
+  mean_runtime_total_s: 0.140284
+  mean_runtime_construct_s: 0.10404
+  mean_runtime_eval_s: 0.0275263
+  mean_sample_size: 492.083
+  selection_score: 14.1853
+  code_path: /content/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/codes/iter_023_3d8dd9872df5083be1d3.py
+  algo_name: Enhanced Sample-Based p-Median Heuristic with Iterative Farthest Point Clustering and Voronoi Refining
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/1 - 10p Run B 1+1/__unzipped__llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/1 - 10p Run B 1+1/__unzipped__llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111
+Original logged code_path: /content/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/codes/iter_023_3d8dd9872df5083be1d3.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/1 - 10p Run B 1+1/__unzipped__llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/codes/iter_023_3d8dd9872df5083be1d3.py
+Copied code file name: iter_023_3d8dd9872df5083be1d3.py

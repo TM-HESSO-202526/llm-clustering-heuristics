@@ -1,0 +1,17 @@
+{
+  "candidate_id": 29,
+  "valid_cases": 72,
+  "total_cases": 72,
+  "mean_gap_ref_pct": 10.895748102272613,
+  "std_gap_ref_pct": 3.315103793131508,
+  "mean_cost": 53612.28182860983,
+  "mean_sse": 1043574.8888888888,
+  "mean_dist_sum": 53612.28182860983,
+  "mean_runtime_total_s": 0.1319017277823554,
+  "mean_runtime_construct_s": 0.096479637755288,
+  "mean_runtime_eval_s": 0.0272540185186598,
+  "mean_sample_size": 492.0833333333333,
+  "algo_name": "Enhanced Sample-Based p-Median Heuristic with Iterative Farthest Point Clustering and Voronoi Refining",
+  "selection_score": 13.802489465284882,
+  "code_path": "/content/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/codes/iter_029_dc95f8f48e98c4f8b43f.py"
+}

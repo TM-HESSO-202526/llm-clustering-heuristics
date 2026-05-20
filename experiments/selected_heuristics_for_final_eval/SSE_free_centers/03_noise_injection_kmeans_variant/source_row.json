@@ -1,0 +1,15 @@
+{
+  "candidate_id": 28,
+  "valid_cases": 24,
+  "total_cases": 24,
+  "mean_gap_ref_pct": 1.6376634409848023,
+  "mean_cost": 778426.6867642036,
+  "mean_sse": 778426.6867642036,
+  "mean_dist_sum": 47157.04253389079,
+  "mean_radius_power_cost": null,
+  "mean_max_radius": null,
+  "mean_runtime_s": 6.668024867773056,
+  "algo_name": "Improved Adaptive Hybrid K-Means with Enhanced Noise Injection and Iterative Refinement",
+  "selection_score": 5.634045851983084,
+  "code_path": "/content/llm_clustering_final_sse_20260508_125728/codes/iter_028_e1054cdd0bb4ec67a203.py"
+}

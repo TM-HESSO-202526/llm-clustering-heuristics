@@ -1,0 +1,29 @@
+Label: 60p ImprovedKMeansSampleInitialization
+Objective folder: SSE_free_centers
+Algorithm name in logs: ImprovedKMeansSampleInitialization
+Mechanism summary: KMeans++-style sample initialization on larger sample with lightweight refinement.
+Why included: Best 60p SSE candidate in the multi-xp patched run; represents the stronger-but-less-lightweight sampling regime.
+
+Primary metrics from source CSV:
+  candidate_id: 6
+  sample_multiplier_run: 60
+  valid_cases: 72
+  total_cases: 72
+  mean_gap_ref_pct: 10.8768
+  std_gap_ref_pct: 4.57426
+  mean_cost: 843944
+  mean_sse: 843944
+  mean_dist_sum: 48775.4
+  mean_runtime_total_s: 0.468626
+  mean_runtime_construct_s: 0.444026
+  mean_runtime_eval_s: 0.0200283
+  mean_sample_size: 2450.42
+  selection_score: 14.2204
+  code_path: /content/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/sample_60p/codes/iter_006_b691cc7629b192e3ddd3.py
+  algo_name: ImprovedKMeansSampleInitialization
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/11 - Rerun Run A 1+1 simple multiple xp patched/__unzipped__llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/sample_60p/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/11 - Rerun Run A 1+1 simple multiple xp patched/__unzipped__llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/sample_60p
+Original logged code_path: /content/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/sample_60p/codes/iter_006_b691cc7629b192e3ddd3.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/11 - Rerun Run A 1+1 simple multiple xp patched/__unzipped__llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/sample_60p/codes/iter_006_b691cc7629b192e3ddd3.py
+Copied code file name: iter_006_b691cc7629b192e3ddd3.py

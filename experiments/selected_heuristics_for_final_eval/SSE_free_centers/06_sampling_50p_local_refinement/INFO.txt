@@ -1,0 +1,29 @@
+Label: 50p sampling + local refinement
+Objective folder: SSE_free_centers
+Algorithm name in logs: Enhanced K-Means Initialization with Local Refinement and Stratified Sampling Repair
+Mechanism summary: Sample-based k-means initialization with local refinement and stratified sampling repair.
+Why included: Good sample-based SSE candidate at 50p; shows gap improves as sample size grows.
+
+Primary metrics from source CSV:
+  candidate_id: 5
+  sample_multiplier_run: 50
+  valid_cases: 72
+  total_cases: 72
+  mean_gap_ref_pct: 12.1795
+  std_gap_ref_pct: 4.55766
+  mean_cost: 856844
+  mean_sse: 856844
+  mean_dist_sum: 49073.4
+  mean_runtime_total_s: 0.301505
+  mean_runtime_construct_s: 0.276901
+  mean_runtime_eval_s: 0.0200451
+  mean_sample_size: 2158.33
+  selection_score: 26.8132
+  code_path: /content/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_112321/sample_50p/codes/iter_005_bfdbf5db99c71e64e877.py
+  algo_name: Enhanced K-Means Initialization with Local Refinement and Stratified Sampling Repair
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/11 - Rerun Run A 1+1 simple multiple xp patched/__unzipped__llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_112321/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_112321/sample_50p/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/11 - Rerun Run A 1+1 simple multiple xp patched/__unzipped__llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_112321/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_112321/sample_50p
+Original logged code_path: /content/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_112321/sample_50p/codes/iter_005_bfdbf5db99c71e64e877.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/11 - Rerun Run A 1+1 simple multiple xp patched/__unzipped__llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_112321/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_112321/sample_50p/codes/iter_005_bfdbf5db99c71e64e877.py
+Copied code file name: iter_005_bfdbf5db99c71e64e877.py

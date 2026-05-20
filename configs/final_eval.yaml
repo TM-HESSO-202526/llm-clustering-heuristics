@@ -1,0 +1,163 @@
+# Final thesis evaluation config.
+# This file only controls the final evaluation stage. It does NOT call or modify
+# the LLM generation loop.
+
+# ---------------------------------------------------------------------------
+# Paths in Colab / Drive. Change these if your files are elsewhere.
+# ---------------------------------------------------------------------------
+cluster_zip_path: "/content/drive/MyDrive/TM/cluster_tai.zip"
+selected_heuristics_dir: "experiments/selected_heuristics_for_final_eval"
+artifact_dir: "/content/drive/MyDrive/TM/final-clustering-evaluation/final_eval_run"
+instance_extract_dir: "/content/final_eval_cluster_tai_extract"
+
+# Optional reference tables. If a table is missing, raw objective values are
+# still produced; gap_pct and quality_ratio remain empty for that objective.
+reference_tables:
+  sse: "/content/drive/MyDrive/TM/kmeans.res"
+  pmedian: "/content/drive/MyDrive/TM/kmeans.res"
+  radius: "/content/drive/MyDrive/TM/generator_radius_reference_last_p.zip"
+
+# Optional import of precomputed Taillard results, if you already have a CSV.
+taillard_results_csv: null
+
+# Taillard radius-volume C++ code integration.
+# Put either clustering_sphere.cpp or clustering cpp.zip at this path in Drive.
+# The runner compiles it with g++ -O2 and runs the three radius-volume methods:
+# option 0 = kmedian-like, option 1 = PAM, option 2 = hybrid PAM-on-10p-sample + kmedian.
+taillard_cpp:
+  enabled: true
+  source_path: "/content/drive/MyDrive/TM/clustering cpp.zip"
+  binary_path: null
+
+# ---------------------------------------------------------------------------
+# Evaluation scope
+# ---------------------------------------------------------------------------
+objectives: [sse, pmedian, radius]
+
+instance_filters:
+  d_values: [2, 3, 4]
+  p_values: [20, 40, 70, 100]
+  instance_ids: [0, 1, 2, 3, 4]
+  min_n: null
+  max_n: null
+
+# ---------------------------------------------------------------------------
+# Statistical protocol and run management
+# ---------------------------------------------------------------------------
+repetitions: 30
+timeout_s: 300
+global_seed: 12345
+# Resume/checkpoint controls. You can stop the run with the notebook stop button
+# or Ctrl-C; relaunching the same command resumes from raw_runs_checkpoint.csv.
+resume: true
+checkpoint_every: 1
+
+# Final-center constraints used for scoring.
+# SSE: free centers.
+# pmedian: snap returned centers to data points.
+# radius: free centers for LLM/kmeans-like baselines; Taillard C++ methods report
+# their own radius-volume ratio directly.
+center_constraints:
+  sse: free
+  pmedian: snap_to_points
+  radius: free
+
+# ---------------------------------------------------------------------------
+# External baselines.
+# No k-medoids max_n caps are set here. The run can be stopped/resumed if PAM or
+# full-distance methods take too long. Use timeout_s to limit a single run.
+# ---------------------------------------------------------------------------
+baselines:
+  # SSE objective-matched baselines. Also scored under radius as secondary refs.
+  - id: sklearn_kmeans_ninit20
+    group: external_baseline
+    type: python
+    objectives: [sse, radius]
+    enabled: true
+    repetitions: 30
+    params: {n_init: 20}
+
+  - id: sklearn_minibatch_kmeans
+    group: external_baseline
+    type: python
+    objectives: [sse, radius]
+    enabled: true
+    repetitions: 30
+    params: {n_init: 10}
+
+  - id: sklearn_bisecting_kmeans
+    group: external_baseline
+    type: python
+    objectives: [sse, radius]
+    enabled: true
+    repetitions: 30
+    params: {n_init: 5}
+
+  # p-median/k-medoids objective-matched baselines. These use full distance
+  # matrices, so they may be very slow/heavy on large instances, but they are
+  # intentionally not capped in this config.
+  - id: python_kmedoids_pam
+    group: external_baseline
+    type: python
+    objectives: [pmedian, radius]
+    enabled: true
+    repetitions: 10
+    max_n: null
+
+  - id: python_kmedoids_fastpam
+    group: external_baseline
+    type: python
+    objectives: [pmedian, radius]
+    enabled: true
+    repetitions: 10
+    max_n: null
+
+  - id: python_kmedoids_fasterpam
+    group: external_baseline
+    type: python
+    objectives: [pmedian, radius]
+    enabled: true
+    repetitions: 10
+    max_n: null
+
+  # Large-scale p-median sampling baseline.
+  - id: sklearn_extra_clara
+    group: external_baseline
+    type: python
+    objectives: [pmedian, radius]
+    enabled: true
+    repetitions: 30
+
+  # Radius-oriented secondary baseline: k-center minimizes max radius, not volume,
+  # but it is useful as a simple radius-aware reference.
+  - id: greedy_kcenter
+    group: external_baseline
+    type: python
+    objectives: [radius]
+    enabled: true
+    repetitions: 30
+
+  # Taillard C++ radius-volume expert baselines.
+  - id: taillard_cpp_kmedian
+    group: taillard_cpp
+    type: taillard_cpp
+    objectives: [radius]
+    enabled: true
+    repetitions: 30
+    cpp_option: 0
+
+  - id: taillard_cpp_pam
+    group: taillard_cpp
+    type: taillard_cpp
+    objectives: [radius]
+    enabled: true
+    repetitions: 30
+    cpp_option: 1
+
+  - id: taillard_cpp_hybrid_10p
+    group: taillard_cpp
+    type: taillard_cpp
+    objectives: [radius]
+    enabled: true
+    repetitions: 30
+    cpp_option: 2

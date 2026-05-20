@@ -1,0 +1,36 @@
+Label: Enhanced recursive sphere-covering diversification V3
+Objective folder: RADIUS_VOLUME_free_centers
+Algorithm name in logs: AdaptiveRecursiveSphereCoveringWithRadiusRefinementAndEnhancedCenterDiversificationV3
+Mechanism summary: Recursive sphere covering with enhanced center diversification and radius refinement.
+Why included: Another high-performing radius-volume variant; included because the enhanced-center-diversification family was mentioned.
+
+Primary metrics from source CSV:
+  candidate_id: 38
+  valid_cases: 24
+  total_cases: 24
+  mean_gap_ref_pct: -19.8377
+  mean_cost: 6.91626e+06
+  mean_sse: 795963
+  mean_dist_sum: 47980.1
+  mean_radius_power_cost: 6.91626e+06
+  mean_max_radius: 29.3247
+  mean_runtime_s: 5.87157
+  selection_score: -23.7617
+  code_path: /content/llm_clustering_final_radius_20260508_141633/codes/iter_038_936ba5328c176bca5ad3.py
+  algo_name: AdaptiveRecursiveSphereCoveringWithRadiusRefinementAndEnhancedCenterDiversificationV3
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/5 - Run C 1+1 edited/__unzipped__llm_clustering_final_radius_20260508_141633/llm_clustering_final_radius_20260508_141633/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/5 - Run C 1+1 edited/__unzipped__llm_clustering_final_radius_20260508_141633/llm_clustering_final_radius_20260508_141633
+Original logged code_path: /content/llm_clustering_final_radius_20260508_141633/codes/iter_038_936ba5328c176bca5ad3.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/5 - Run C 1+1 edited/__unzipped__llm_clustering_final_radius_20260508_141633/llm_clustering_final_radius_20260508_141633/codes/iter_038_936ba5328c176bca5ad3.py
+Copied code file name: iter_038_936ba5328c176bca5ad3.py
+
+Discovered-final-candidates summary match:
+  candidate_id: 38
+  valid_cases: 24
+  total_cases: 24
+  mean_gap_ref_pct: -19.8377
+  mean_runtime_s: 5.87157
+  selection_score: -23.7617
+  source_zip_basename: llm_clustering_final_radius_20260508_141633.zip
+  objective: radius

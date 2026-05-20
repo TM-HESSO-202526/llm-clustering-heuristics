@@ -1,0 +1,32 @@
+Label: 20p adaptive diversified sample k-means++ enhanced local refining
+Objective folder: RADIUS_VOLUME_free_centers
+Algorithm name in logs: Adaptive Diversified Sample-Based K-Means++ with Enhanced Local Refining and Cluster Size Balancing
+Mechanism summary: Adaptive diversified sample-based k-means++ with enhanced local refining and cluster-size balancing.
+Why included: The named sample_20p variant mentioned in the previous analysis.
+
+Primary metrics from source CSV:
+  candidate_id: 8
+  sample_multiplier_run: 20
+  valid_cases: 72
+  total_cases: 72
+  mean_gap_ref_pct: 9.662
+  std_gap_ref_pct: 11.5126
+  mean_cost: 1.19196e+07
+  mean_sse: 863022
+  mean_dist_sum: 49428
+  mean_radius_power_cost: 1.19196e+07
+  mean_max_radius: 36.8907
+  mean_nonempty_clusters: 49.2083
+  mean_runtime_total_s: 0.194376
+  mean_runtime_construct_s: 0.158647
+  mean_runtime_eval_s: 0.0321325
+  mean_sample_size: 974.792
+  selection_score: 17.0999
+  code_path: /content/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_20p/codes/iter_008_9fd79ee04ed10179fc88.py
+  algo_name: Adaptive Diversified Sample-Based K-Means++ with Enhanced Local Refining and Cluster Size Balancing
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_20p/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_20p
+Original logged code_path: /content/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_20p/codes/iter_008_9fd79ee04ed10179fc88.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_20p/codes/iter_008_9fd79ee04ed10179fc88.py
+Copied code file name: iter_008_9fd79ee04ed10179fc88.py

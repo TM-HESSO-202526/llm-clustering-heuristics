@@ -1,0 +1,48 @@
+Label: Best recursive sphere-covering radius heuristic V25
+Objective folder: RADIUS_VOLUME_free_centers
+Algorithm name in logs: AdaptiveRecursiveSphereCoveringWithRadiusRefinementAndCenterDiversificationV25
+Mechanism summary: Recursive sphere covering/partitioning, radius-aware refinement, center diversification, farthest-uncovered repair.
+Why included: Best radius-volume heuristic by mean gap; most objective-specific LLM mechanism.
+
+Primary metrics from source CSV:
+  candidate_id: 32
+  valid_cases: 24
+  total_cases: 24
+  mean_gap_ref_pct: -19.9461
+  mean_cost: 6.9149e+06
+  mean_sse: 793680
+  mean_dist_sum: 47909.6
+  mean_radius_power_cost: 6.9149e+06
+  mean_max_radius: 29.2792
+  mean_runtime_s: 5.88886
+  selection_score: -23.2311
+  code_path: /content/llm_clustering_final_radius_20260508_141633/codes/iter_032_33fd164156877b8192f5.py
+  algo_name: AdaptiveRecursiveSphereCoveringWithRadiusRefinementAndCenterDiversificationV25
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/5 - Run C 1+1 edited/__unzipped__llm_clustering_final_radius_20260508_141633/llm_clustering_final_radius_20260508_141633/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/5 - Run C 1+1 edited/__unzipped__llm_clustering_final_radius_20260508_141633/llm_clustering_final_radius_20260508_141633
+Original logged code_path: /content/llm_clustering_final_radius_20260508_141633/codes/iter_032_33fd164156877b8192f5.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/5 - Run C 1+1 edited/__unzipped__llm_clustering_final_radius_20260508_141633/llm_clustering_final_radius_20260508_141633/codes/iter_032_33fd164156877b8192f5.py
+Copied code file name: iter_032_33fd164156877b8192f5.py
+
+All-270 replay/global summary match:
+  objective: radius
+  candidate_id: 32
+  valid_instances: 270
+  total_instances: 270
+  mean_best_gap_ref_pct: -20.5972
+  median_best_gap_ref_pct: -19.3956
+  max_best_gap_ref_pct: 12.1534
+  mean_runtime_s: 5.19293
+  max_runtime_s: 24.8347
+  source_zip_basename: llm_clustering_final_radius_20260508_141633.zip
+
+Discovered-final-candidates summary match:
+  candidate_id: 32
+  valid_cases: 24
+  total_cases: 24
+  mean_gap_ref_pct: -19.9461
+  mean_runtime_s: 5.88886
+  selection_score: -23.2311
+  source_zip_basename: llm_clustering_final_radius_20260508_141633.zip
+  objective: radius

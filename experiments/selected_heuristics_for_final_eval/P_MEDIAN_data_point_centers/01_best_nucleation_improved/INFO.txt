@@ -1,0 +1,34 @@
+Label: Best p-median nucleation heuristic
+Objective folder: P_MEDIAN_data_point_centers
+Algorithm name in logs: ImprovedEnhancedNucleationClusteringHeuristic
+Mechanism summary: Farthest/nucleation-style medoid construction, replacement pressure, cluster assignment, snap to data points.
+Why included: Best p-median final candidate by mean gap in the selected final summary.
+
+Primary metrics from source CSV:
+  candidate_id: 7
+  valid_cases: 23
+  total_cases: 24
+  mean_gap_ref_pct: 3.30205
+  mean_cost: 43965.8
+  mean_sse: 771038
+  mean_dist_sum: 43965.8
+  mean_runtime_s: 6.95565
+  selection_score: 4.35375
+  code_path: /content/llm_clustering_final_pmedian_20260508_094013/codes/iter_007_9d4cddf878e9f77f25d7.py
+  algo_name: ImprovedEnhancedNucleationClusteringHeuristic
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/2 - Run B 1+1/__unzipped__llm_clustering_final_pmedian_20260508_094013/llm_clustering_final_pmedian_20260508_094013/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/2 - Run B 1+1/__unzipped__llm_clustering_final_pmedian_20260508_094013/llm_clustering_final_pmedian_20260508_094013
+Original logged code_path: /content/llm_clustering_final_pmedian_20260508_094013/codes/iter_007_9d4cddf878e9f77f25d7.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/2 - Run B 1+1/__unzipped__llm_clustering_final_pmedian_20260508_094013/llm_clustering_final_pmedian_20260508_094013/codes/iter_007_9d4cddf878e9f77f25d7.py
+Copied code file name: iter_007_9d4cddf878e9f77f25d7.py
+
+Discovered-final-candidates summary match:
+  candidate_id: 7
+  valid_cases: 23
+  total_cases: 24
+  mean_gap_ref_pct: 3.30205
+  mean_runtime_s: 6.95565
+  selection_score: 4.35375
+  source_zip_basename: llm_clustering_final_pmedian_20260508_094013.zip
+  objective: pmedian

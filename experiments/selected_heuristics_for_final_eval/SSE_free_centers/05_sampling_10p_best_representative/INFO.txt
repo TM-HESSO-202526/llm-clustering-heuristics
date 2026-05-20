@@ -1,0 +1,28 @@
+Label: Strict 10p sampling SSE representative
+Objective folder: SSE_free_centers
+Algorithm name in logs: ImprovedClusteringHeuristicWithEnhancedInitializationAndAdaptiveConvergence
+Mechanism summary: Sample at most about 10p points, initialize/refine centers on sample, then score on full instances.
+Why included: Best strict 10p SSE candidate by mean gap; shows 10p is fast but quality remains weaker.
+
+Primary metrics from source CSV:
+  candidate_id: 24
+  valid_cases: 72
+  total_cases: 72
+  mean_gap_ref_pct: 27.0149
+  std_gap_ref_pct: 8.0596
+  mean_cost: 978025
+  mean_sse: 978025
+  mean_dist_sum: 52032
+  mean_runtime_total_s: 0.631741
+  mean_runtime_construct_s: 0.592995
+  mean_runtime_eval_s: 0.0332413
+  mean_sample_size: 492.083
+  selection_score: 38.236
+  code_path: /content/llm_clustering_runA_sse_sampling_10p_minimal_prompt_20260512_085312/codes/iter_024_1fa032cd7ab4813922f6.py
+  algo_name: ImprovedClusteringHeuristicWithEnhancedInitializationAndAdaptiveConvergence
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/5 - 10p Run A 1+1 simple/__unzipped__llm_clustering_runA_sse_sampling_10p_minimal_prompt_20260512_085312/llm_clustering_runA_sse_sampling_10p_minimal_prompt_20260512_085312/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/5 - 10p Run A 1+1 simple/__unzipped__llm_clustering_runA_sse_sampling_10p_minimal_prompt_20260512_085312/llm_clustering_runA_sse_sampling_10p_minimal_prompt_20260512_085312
+Original logged code_path: /content/llm_clustering_runA_sse_sampling_10p_minimal_prompt_20260512_085312/codes/iter_024_1fa032cd7ab4813922f6.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 13/5 - 10p Run A 1+1 simple/__unzipped__llm_clustering_runA_sse_sampling_10p_minimal_prompt_20260512_085312/llm_clustering_runA_sse_sampling_10p_minimal_prompt_20260512_085312/codes/iter_024_1fa032cd7ab4813922f6.py
+Copied code file name: iter_024_1fa032cd7ab4813922f6.py

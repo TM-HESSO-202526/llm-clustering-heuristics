@@ -1,0 +1,15 @@
+{
+  "candidate_id": 8,
+  "valid_cases": 24,
+  "total_cases": 24,
+  "mean_gap_ref_pct": 7.182941933709771,
+  "mean_cost": 10059505.064137794,
+  "mean_sse": 897479.275031386,
+  "mean_dist_sum": 50116.52936301852,
+  "mean_radius_power_cost": 10059505.064137794,
+  "mean_max_radius": 38.88414826304566,
+  "mean_runtime_s": 2.130718678236008,
+  "algo_name": "EnhancedVolumeCoveringHeuristicV5",
+  "selection_score": 8.653112180479493,
+  "code_path": "/content/llm_clustering_final_radius_20260507_153754/codes/iter_008_7f6a003aaa2f32ab3c38.py"
+}

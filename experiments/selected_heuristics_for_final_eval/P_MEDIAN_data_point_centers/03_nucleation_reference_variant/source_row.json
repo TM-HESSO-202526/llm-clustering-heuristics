@@ -1,0 +1,15 @@
+{
+  "candidate_id": 6,
+  "valid_cases": 24,
+  "total_cases": 24,
+  "mean_gap_ref_pct": 3.546560553470442,
+  "mean_cost": 48993.5608432533,
+  "mean_sse": 864174.5416666666,
+  "mean_dist_sum": 48993.5608432533,
+  "mean_radius_power_cost": null,
+  "mean_max_radius": null,
+  "mean_runtime_s": 4.720847884813945,
+  "algo_name": "EnhancedImprovedNucleationClusteringHeuristic",
+  "selection_score": 4.307997146131189,
+  "code_path": "/content/llm_clustering_final_pmedian_20260508_094013/codes/iter_006_9aaa459f60bce6d0581a.py"
+}

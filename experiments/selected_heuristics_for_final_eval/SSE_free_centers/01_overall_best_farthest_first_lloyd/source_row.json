@@ -1,0 +1,15 @@
+{
+  "candidate_id": 37,
+  "valid_cases": 24,
+  "total_cases": 24,
+  "mean_gap_ref_pct": 1.3885698127788766,
+  "mean_cost": 776191.9458896536,
+  "mean_sse": 776191.9458896536,
+  "mean_dist_sum": 47236.16211418328,
+  "mean_radius_power_cost": null,
+  "mean_max_radius": null,
+  "mean_runtime_s": 22.53538192311923,
+  "algo_name": "Enhanced Adaptive Farthest-First Initialization with Hybrid Refinement, Adaptive Scoring, and Iterative Refinement",
+  "selection_score": 1.9738980022695056,
+  "code_path": "/content/llm_clustering_final_sse_20260506_184835/codes/iter_037_485de21a19ccc6c83dc8.py"
+}

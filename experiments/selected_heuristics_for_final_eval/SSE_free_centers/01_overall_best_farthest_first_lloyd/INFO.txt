@@ -1,0 +1,46 @@
+Label: Overall best SSE farthest-first + Lloyd hybrid
+Objective folder: SSE_free_centers
+Algorithm name in logs: Enhanced Adaptive Farthest-First Initialization with Hybrid Refinement, Adaptive Scoring, and Iterative Refinement
+Mechanism summary: Multi-start farthest-first initialization, adaptive scoring, Lloyd-style refinement, iterative repair.
+Why included: Best historical SSE/free-centers candidate in the selected final summary; representative of LLM drifting toward k-means/Lloyd.
+
+Primary metrics from source CSV:
+  candidate_id: 37
+  valid_cases: 24
+  total_cases: 24
+  mean_gap_ref_pct: 1.38857
+  mean_cost: 776192
+  mean_sse: 776192
+  mean_dist_sum: 47236.2
+  mean_runtime_s: 22.5354
+  selection_score: 1.9739
+  code_path: /content/llm_clustering_final_sse_20260506_184835/codes/iter_037_485de21a19ccc6c83dc8.py
+  algo_name: Enhanced Adaptive Farthest-First Initialization with Hybrid Refinement, Adaptive Scoring, and Iterative Refinement
+
+Source CSV: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/1 - Run A 1+1/__unzipped__llm_clustering_final_sse_20260506_184835/llm_clustering_final_sse_20260506_184835/llm_final_candidate_summary.csv
+Source run directory: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/1 - Run A 1+1/__unzipped__llm_clustering_final_sse_20260506_184835/llm_clustering_final_sse_20260506_184835
+Original logged code_path: /content/llm_clustering_final_sse_20260506_184835/codes/iter_037_485de21a19ccc6c83dc8.py
+Resolved local source code: /mnt/data/cluster_run_analysis/Runs_3_/Runs/Runs semaine 12/1 - Run A 1+1/__unzipped__llm_clustering_final_sse_20260506_184835/llm_clustering_final_sse_20260506_184835/codes/iter_037_485de21a19ccc6c83dc8.py
+Copied code file name: iter_037_485de21a19ccc6c83dc8.py
+
+All-270 replay/global summary match:
+  objective: sse
+  candidate_id: 37
+  valid_instances: 270
+  total_instances: 270
+  mean_best_gap_ref_pct: 1.6308
+  median_best_gap_ref_pct: 1.54293
+  max_best_gap_ref_pct: 5.28478
+  mean_runtime_s: 24.0332
+  max_runtime_s: 113.509
+  source_zip_basename: llm_clustering_final_sse_20260506_184835.zip
+
+Discovered-final-candidates summary match:
+  candidate_id: 37
+  valid_cases: 24
+  total_cases: 24
+  mean_gap_ref_pct: 1.38857
+  mean_runtime_s: 22.5354
+  selection_score: 1.9739
+  source_zip_basename: llm_clustering_final_sse_20260506_184835.zip
+  objective: sse

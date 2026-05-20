@@ -1,0 +1,15 @@
+{
+  "candidate_id": 38,
+  "valid_cases": 24,
+  "total_cases": 24,
+  "mean_gap_ref_pct": -19.837675327333237,
+  "mean_cost": 6916263.026487581,
+  "mean_sse": 795963.0135583947,
+  "mean_dist_sum": 47980.073877106886,
+  "mean_radius_power_cost": 6916263.026487581,
+  "mean_max_radius": 29.324695556641316,
+  "mean_runtime_s": 5.871574302514394,
+  "algo_name": "AdaptiveRecursiveSphereCoveringWithRadiusRefinementAndEnhancedCenterDiversificationV3",
+  "selection_score": -23.76173096465268,
+  "code_path": "/content/llm_clustering_final_radius_20260508_141633/codes/iter_038_936ba5328c176bca5ad3.py"
+}

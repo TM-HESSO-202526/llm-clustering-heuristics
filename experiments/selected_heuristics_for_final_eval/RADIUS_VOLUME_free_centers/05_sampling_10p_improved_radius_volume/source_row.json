@@ -1,0 +1,21 @@
+{
+  "sample_multiplier_run": 10,
+  "candidate_id": 6,
+  "valid_cases": 72,
+  "total_cases": 72,
+  "mean_gap_ref_pct": 135.23113697018317,
+  "std_gap_ref_pct": 80.16629505900795,
+  "mean_cost": 29173399.70881368,
+  "mean_sse": 1376061.2083333333,
+  "mean_dist_sum": 62229.84270908592,
+  "mean_radius_power_cost": 29173399.70881368,
+  "mean_max_radius": 42.22853350970756,
+  "mean_nonempty_clusters": 49.208333333333336,
+  "mean_runtime_total_s": 1.0851684444480472,
+  "mean_runtime_construct_s": 1.0490462183952332,
+  "mean_runtime_eval_s": 0.0323667890495724,
+  "mean_sample_size": 492.0833333333333,
+  "algo_name": "ImprovedRadiusVolumeHeuristic",
+  "selection_score": 105.78105528044308,
+  "code_path": "/content/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_10p/codes/iter_006_fdb4d0b37253024f2fee.py"
+}

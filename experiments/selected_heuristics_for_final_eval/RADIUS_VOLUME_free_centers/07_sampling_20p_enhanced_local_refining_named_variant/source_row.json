@@ -1,0 +1,21 @@
+{
+  "sample_multiplier_run": 20,
+  "candidate_id": 8,
+  "valid_cases": 72,
+  "total_cases": 72,
+  "mean_gap_ref_pct": 9.66199722285985,
+  "std_gap_ref_pct": 11.512593556036524,
+  "mean_cost": 11919595.962697793,
+  "mean_sse": 863021.8088023799,
+  "mean_dist_sum": 49427.99706658606,
+  "mean_radius_power_cost": 11919595.962697793,
+  "mean_max_radius": 36.89068655628477,
+  "mean_nonempty_clusters": 49.208333333333336,
+  "mean_runtime_total_s": 0.1943759255939059,
+  "mean_runtime_construct_s": 0.1586469411849975,
+  "mean_runtime_eval_s": 0.0321324732568528,
+  "mean_sample_size": 974.7916666666666,
+  "algo_name": "Adaptive Diversified Sample-Based K-Means++ with Enhanced Local Refining and Cluster Size Balancing",
+  "selection_score": 17.09986802461571,
+  "code_path": "/content/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_20p/codes/iter_008_9fd79ee04ed10179fc88.py"
+}

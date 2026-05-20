@@ -1,0 +1,18 @@
+{
+  "sample_multiplier_run": 60,
+  "candidate_id": 6,
+  "valid_cases": 72,
+  "total_cases": 72,
+  "mean_gap_ref_pct": 10.876755513907847,
+  "std_gap_ref_pct": 4.574264744945813,
+  "mean_cost": 843944.261329113,
+  "mean_sse": 843944.261329113,
+  "mean_dist_sum": 48775.38604034277,
+  "mean_runtime_total_s": 0.4686257971657647,
+  "mean_runtime_construct_s": 0.4440258377128177,
+  "mean_runtime_eval_s": 0.0200282865100436,
+  "mean_sample_size": 2450.4166666666665,
+  "algo_name": "ImprovedKMeansSampleInitialization",
+  "selection_score": 14.220437007302808,
+  "code_path": "/content/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/sample_60p/codes/iter_006_b691cc7629b192e3ddd3.py"
+}
