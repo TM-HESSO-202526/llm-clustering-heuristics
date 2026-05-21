@@ -1,0 +1,15 @@
+20260518_181812 candidate 4
+
+Objective folder: RADIUS_VOLUME_data_point_centers
+Reason selected: Hybrid sampling plus full-instance radius repair; best probe robustness among the 181812 candidates discussed.
+Center model: snapped/data-point centers
+Algorithm name: ImprovedRadiusVolumeHeuristic
+Mechanism detected: sampled medoid construction + local radius repair
+Code family detected: sampling_coreset|medoid_snap|radius_covering|local_refinement|randomized
+
+Available split metrics:
+- probe: gap=26.38570649818071, valid=3/3, runtime_s=43.916197776794434
+- search: gap=4.943053781478942, valid=3/3, runtime_s=13.00871737798055
+
+Original code path: /mnt/data/runC_snap_analysis/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260518_181812/codes/iter_004_534024348fc00c7fd2a4.py
+Copied code file: iter_004_534024348fc00c7fd2a4.py

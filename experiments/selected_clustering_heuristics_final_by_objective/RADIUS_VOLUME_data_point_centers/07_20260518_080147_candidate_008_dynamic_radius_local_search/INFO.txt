@@ -1,0 +1,15 @@
+20260518_080147 candidate 8
+
+Objective folder: RADIUS_VOLUME_data_point_centers
+Reason selected: Dynamic radius-control/local-search mechanism; strong probe score but weak search score.
+Center model: snapped/data-point centers
+Algorithm name: RadiusVolumeLocalSearchHeuristicWithDynamicRadiusControl
+Mechanism detected: farthest-first medoid selection/refinement
+Code family detected: medoid_snap|radius_covering|farthest_first|local_refinement|randomized
+
+Available split metrics:
+- probe: gap=9.971302484283507, valid=3/3, runtime_s=81.03964352607726
+- search: gap=138.80450562247208, valid=3/3, runtime_s=14.933639685312906
+
+Original code path: /mnt/data/runC_snap_analysis/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260518_080147/codes/iter_008_6ec3eed7b0944f9f2cbb.py
+Copied code file: iter_008_6ec3eed7b0944f9f2cbb.py

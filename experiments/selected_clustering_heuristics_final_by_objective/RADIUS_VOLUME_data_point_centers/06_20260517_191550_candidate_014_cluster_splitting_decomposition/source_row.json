@@ -1,0 +1,52 @@
+{
+  "objective_folder": "RADIUS_VOLUME_data_point_centers",
+  "folder": "06_20260517_191550_candidate_014_cluster_splitting_decomposition",
+  "label": "20260517_191550 candidate 14",
+  "run_id": "llm_clustering_unified_ABC_radius_20260517_191550",
+  "candidate_id": 14,
+  "reason_selected": "Explicit high-radius cluster splitting/decomposition attempt with data-point replacement.",
+  "algo_name": "AdaptiveRadiusVolumeCoveringHeuristicWithClusterSplittingAndDataPointReplacement",
+  "mechanism_detected": "recursive/geometric partition + data-point snapping",
+  "code_family_detected": "recursive_partition|medoid_snap|radius_covering|farthest_first|randomized",
+  "original_code_file": "/mnt/data/runC_snap_analysis/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260517_191550/codes/iter_014_c5468f9eac829d7e22e3.py",
+  "copied_code_file": "iter_014_c5468f9eac829d7e22e3.py",
+  "split_metrics": [
+    {
+      "run_id": "llm_clustering_unified_ABC_radius_20260517_191550",
+      "iteration": 14,
+      "split": "probe",
+      "mean_gap_ref_pct": 58.12684755174908,
+      "valid_cases": 3,
+      "total_cases": 3,
+      "failed_cases": 0,
+      "mean_runtime_s": 21.658712307612102,
+      "algo_name": "AdaptiveRadiusVolumeCoveringHeuristicWithClusterSplittingAndDataPointReplacement",
+      "mechanism_detected": "recursive/geometric partition + data-point snapping",
+      "code_family_detected": "recursive_partition|medoid_snap|radius_covering|farthest_first|randomized",
+      "family_sig": "recursive_partition",
+      "search_gap_ref_mean": 13.304095641641558,
+      "probe_gap_ref_mean": 58.12684755174908,
+      "selection_score": 42.3675194175161,
+      "local_code_path": "/mnt/data/runC_snap_analysis/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260517_191550/codes/iter_014_c5468f9eac829d7e22e3.py"
+    },
+    {
+      "run_id": "llm_clustering_unified_ABC_radius_20260517_191550",
+      "iteration": 14,
+      "split": "search",
+      "mean_gap_ref_pct": 13.30409564164156,
+      "valid_cases": 3,
+      "total_cases": 3,
+      "failed_cases": 0,
+      "mean_runtime_s": 8.082487980524698,
+      "algo_name": "AdaptiveRadiusVolumeCoveringHeuristicWithClusterSplittingAndDataPointReplacement",
+      "mechanism_detected": "recursive/geometric partition + data-point snapping",
+      "code_family_detected": "recursive_partition|medoid_snap|radius_covering|farthest_first|randomized",
+      "family_sig": "recursive_partition",
+      "search_gap_ref_mean": 13.304095641641558,
+      "probe_gap_ref_mean": 58.12684755174908,
+      "selection_score": 42.3675194175161,
+      "local_code_path": "/mnt/data/runC_snap_analysis/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260517_191550/codes/iter_014_c5468f9eac829d7e22e3.py"
+    }
+  ],
+  "note": "Run C snapped/data-point center selection; centers are constrained/snapped to data points."
+}

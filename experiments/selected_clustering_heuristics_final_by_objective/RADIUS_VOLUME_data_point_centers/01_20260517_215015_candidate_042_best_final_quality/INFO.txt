@@ -1,0 +1,16 @@
+20260517_215015 candidate 42
+
+Objective folder: RADIUS_VOLUME_data_point_centers
+Reason selected: Best full final-eval snapped Run C quality among selected candidates.
+Center model: snapped/data-point centers
+Algorithm name: Enhanced Volume Reduction Clustering with Adaptive Replacement, Local Search, and Neighborhood Exploration with Improved
+Mechanism detected: recursive/geometric partition + data-point snapping
+Code family detected: recursive_partition|medoid_snap|radius_covering|farthest_first|local_refinement|randomized
+
+Available split metrics:
+- final: gap=41.258543311699896, valid=24/24, runtime_s=80.75140110651652
+- probe: gap=8.441557370746619, valid=3/3, runtime_s=125.70295063654584
+- search: gap=69.83570502391935, valid=3/3, runtime_s=62.92728352546692
+
+Original code path: /mnt/data/runC_snap_analysis/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260517_215015/codes/iter_042_dcd5b9f129ed6e57faac.py
+Copied code file: iter_042_dcd5b9f129ed6e57faac.py

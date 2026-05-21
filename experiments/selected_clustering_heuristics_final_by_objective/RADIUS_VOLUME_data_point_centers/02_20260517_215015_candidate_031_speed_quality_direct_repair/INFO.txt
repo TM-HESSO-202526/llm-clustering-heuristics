@@ -1,0 +1,16 @@
+20260517_215015 candidate 31
+
+Objective folder: RADIUS_VOLUME_data_point_centers
+Reason selected: Fastest serious direct snapped medoid/radius-repair finalist.
+Center model: snapped/data-point centers
+Algorithm name: Enhanced Volume Reduction Clustering with Adaptive Replacement, Local Search, Neighborhood Exploration, and Improved Rad
+Mechanism detected: recursive/geometric partition + data-point snapping
+Code family detected: recursive_partition|medoid_snap|radius_covering|farthest_first|local_refinement|randomized
+
+Available split metrics:
+- final: gap=46.58544296391506, valid=24/24, runtime_s=29.736962268749878
+- probe: gap=10.487820090129953, valid=3/3, runtime_s=47.08520746231079
+- search: gap=85.50730017712065, valid=3/3, runtime_s=21.616985082626343
+
+Original code path: /mnt/data/runC_snap_analysis/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260517_215015/codes/iter_031_eaabf8b0e9dece65b4ea.py
+Copied code file: iter_031_eaabf8b0e9dece65b4ea.py

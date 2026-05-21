@@ -1,0 +1,15 @@
+20260517_191550 candidate 14
+
+Objective folder: RADIUS_VOLUME_data_point_centers
+Reason selected: Explicit high-radius cluster splitting/decomposition attempt with data-point replacement.
+Center model: snapped/data-point centers
+Algorithm name: AdaptiveRadiusVolumeCoveringHeuristicWithClusterSplittingAndDataPointReplacement
+Mechanism detected: recursive/geometric partition + data-point snapping
+Code family detected: recursive_partition|medoid_snap|radius_covering|farthest_first|randomized
+
+Available split metrics:
+- probe: gap=58.12684755174908, valid=3/3, runtime_s=21.658712307612102
+- search: gap=13.30409564164156, valid=3/3, runtime_s=8.082487980524698
+
+Original code path: /mnt/data/runC_snap_analysis/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260517_191550/codes/iter_014_c5468f9eac829d7e22e3.py
+Copied code file: iter_014_c5468f9eac829d7e22e3.py
