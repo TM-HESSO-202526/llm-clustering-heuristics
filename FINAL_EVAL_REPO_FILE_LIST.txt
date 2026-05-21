@@ -43,8 +43,8 @@ docs/prompt_design.md
 experiments/README.md
 experiments/examples/.gitkeep
 experiments/runs/.gitkeep
-experiments/selected_heuristics_for_final_eval/INDEX_selected_heuristics.csv
-experiments/selected_heuristics_for_final_eval/README.md
+experiments/selected_clustering_heuristics_final_by_objective/INDEX_selected_heuristics.csv
+experiments/selected_clustering_heuristics_final_by_objective/README.md
 external/taillard_cpp/clustering_sphere.cpp
 notebooks/00_final_evaluation_launcher.ipynb
 notebooks/00_unified_colab_launcher.ipynb

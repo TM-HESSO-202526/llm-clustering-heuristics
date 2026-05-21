@@ -319,25 +319,60 @@ def load_selected_heuristic(py_path: str):
 
 
 def discover_selected_heuristics(root: str) -> List[Dict[str, Any]]:
+    """Discover frozen selected heuristics and attach the correct center model.
+
+    This is evaluation-side routing only. It does not touch the LLM search loop.
+
+    Folder mapping:
+      SSE_free_centers                 -> objective=sse,     free centers
+      P_MEDIAN_data_point_centers      -> objective=pmedian, snap_to_points
+      RADIUS_VOLUME_free_centers       -> objective=radius,  free centers
+      RADIUS_VOLUME_data_point_centers -> objective=radius,  snap_to_points
+    """
     rootp = Path(root)
     rows = []
+    if not rootp.exists():
+        raise FileNotFoundError(f"Selected heuristics directory not found: {root}")
+
     for py in sorted(rootp.rglob("*.py")):
         rel = py.relative_to(rootp).as_posix()
         if rel.startswith("SSE_free_centers/"):
             objective = "sse"
+            center_constraint = "free"
+            method_variant = "sse_free"
+            reference_key = "sse"
         elif rel.startswith("P_MEDIAN_data_point_centers/"):
             objective = "pmedian"
+            center_constraint = "snap_to_points"
+            method_variant = "pmedian_data_point"
+            reference_key = "pmedian"
         elif rel.startswith("RADIUS_VOLUME_free_centers/"):
             objective = "radius"
+            center_constraint = "free"
+            method_variant = "radius_free"
+            reference_key = "radius_free"
+        elif rel.startswith("RADIUS_VOLUME_data_point_centers/"):
+            objective = "radius"
+            center_constraint = "snap_to_points"
+            method_variant = "radius_data_point"
+            reference_key = "radius_data_point"
         else:
             objective = "unknown"
+            center_constraint = "free"
+            method_variant = "unknown"
+            reference_key = "unknown"
+
         info_path = py.parent / "INFO.txt"
         info = info_path.read_text(encoding="utf-8", errors="ignore") if info_path.exists() else ""
         method_id = py.parent.name
         rows.append({
             "method_id": method_id,
             "method_group": "llm_selected",
+            "method_type": "python",
             "objective": objective,
+            "center_constraint": center_constraint,
+            "method_variant": method_variant,
+            "reference_key": reference_key,
             "path": str(py),
             "relative_path": rel,
             "info_text": info,
@@ -839,6 +874,8 @@ def build_method_list(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "max_n": b.get("max_n"),
                 "repetitions": b.get("repetitions"),
                 "center_constraint": b.get("center_constraint"),
+                "method_variant": b.get("method_variant") or ("radius_data_point" if obj == "radius" and b.get("center_constraint") == "snap_to_points" else ("radius_free" if obj == "radius" else obj)),
+                "reference_key": b.get("reference_key") or ("radius_data_point" if obj == "radius" and b.get("center_constraint") == "snap_to_points" else ("radius_free" if obj == "radius" else obj)),
                 "cpp_option": b.get("cpp_option"),
             })
     return methods
@@ -866,7 +903,7 @@ def main() -> None:
     )
     print(f"Loaded {len(instances)} instances")
 
-    refs_by_obj = {obj: load_reference_table(path) for obj, path in (cfg.get("reference_tables", {}) or {}).items()}
+    refs_by_key = {key: load_reference_table(path) for key, path in (cfg.get("reference_tables", {}) or {}).items()}
     methods = build_method_list(cfg)
 
     # Compile Taillard C++ once if those baselines are enabled.
@@ -880,7 +917,7 @@ def main() -> None:
     print(f"Methods: {len(methods)}")
 
     if args.dry_run:
-        cols = [c for c in ["objective", "method_group", "method_type", "method_id", "path", "max_n", "repetitions"] if c in methods_df.columns]
+        cols = [c for c in ["objective", "method_variant", "center_constraint", "reference_key", "method_group", "method_type", "method_id", "path", "max_n", "repetitions"] if c in methods_df.columns]
         print(methods_df[cols].to_string(index=False))
         return
 
@@ -989,6 +1026,9 @@ def main() -> None:
                 "method_type": method_type,
                 "method_id": method_id,
                 "method_path": m.get("relative_path") or m.get("path"),
+                "method_variant": m.get("method_variant", ""),
+                "center_constraint": m.get("center_constraint", ""),
+                "reference_key": m.get("reference_key", ""),
                 "instance": inst.name,
                 "n": inst.n, "p": inst.p, "d": inst.d, "instance_id": inst.instance_id,
                 "rep": rep, "seed": seed,
@@ -1027,7 +1067,12 @@ def main() -> None:
                         rng = np.random.default_rng(seed + 999)
                         centers, center_status, center_note = sanitize_centers(inst.X, out["centers"], inst.p, constraint, rng)
                         val = objective_value(inst.X, centers, obj)
-                        ref = find_reference_value(refs_by_obj.get(obj, pd.DataFrame()), inst, obj)
+                        ref_key = str(m.get("reference_key") or ("radius_data_point" if obj == "radius" and constraint == "snap_to_points" else ("radius_free" if obj == "radius" else obj)))
+                        ref_df = refs_by_key.get(ref_key, pd.DataFrame())
+                        # Only use the generic radius reference as an explicit fallback if it was provided.
+                        if ref_df.empty and obj != "radius":
+                            ref_df = refs_by_key.get(obj, pd.DataFrame())
+                        ref = find_reference_value(ref_df, inst, obj)
                         row.update({
                             "success": True,
                             "objective_value": val,

@@ -10,7 +10,7 @@ configs/final_eval.yaml
 notebooks/00_final_evaluation_launcher.ipynb
 docs/final_evaluation_protocol.md
 requirements-final-eval.txt
-experiments/selected_heuristics_for_final_eval/
+experiments/selected_clustering_heuristics_final_by_objective/
 external/taillard_cpp/clustering_sphere.cpp
 ```
 

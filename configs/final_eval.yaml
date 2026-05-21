@@ -6,7 +6,7 @@
 # Paths in Colab / Drive. Change these if your files are elsewhere.
 # ---------------------------------------------------------------------------
 cluster_zip_path: "/content/drive/MyDrive/TM/cluster_tai.zip"
-selected_heuristics_dir: "experiments/selected_heuristics_for_final_eval"
+selected_heuristics_dir: "experiments/selected_clustering_heuristics_final_by_objective"
 artifact_dir: "/content/drive/MyDrive/TM/final-clustering-evaluation/final_eval_run"
 instance_extract_dir: "/content/final_eval_cluster_tai_extract"
 
@@ -15,7 +15,12 @@ instance_extract_dir: "/content/final_eval_cluster_tai_extract"
 reference_tables:
   sse: "/content/drive/MyDrive/TM/kmeans.res"
   pmedian: "/content/drive/MyDrive/TM/kmeans.res"
-  radius: "/content/drive/MyDrive/TM/generator_radius_reference_last_p.zip"
+  # Run C has two center models in the selected folder. Keep references separate
+  # so free-center Run C is not accidentally compared against data-point references.
+  radius_free: null
+  radius_data_point: "/content/drive/MyDrive/TM/generator_radius_reference_last_p.zip"
+  # Optional fallback only. Leave null unless you intentionally want one shared radius reference.
+  radius: null
 
 # Optional import of precomputed Taillard results, if you already have a CSV.
 taillard_results_csv: null
@@ -26,7 +31,7 @@ taillard_results_csv: null
 # option 0 = kmedian-like, option 1 = PAM, option 2 = hybrid PAM-on-10p-sample + kmedian.
 taillard_cpp:
   enabled: true
-  source_path: "/content/drive/MyDrive/TM/clustering cpp.zip"
+  source_path: "external/taillard_cpp/clustering_sphere.cpp"
   binary_path: null
 
 # ---------------------------------------------------------------------------
@@ -52,11 +57,11 @@ global_seed: 12345
 resume: true
 checkpoint_every: 1
 
-# Final-center constraints used for scoring.
-# SSE: free centers.
-# pmedian: snap returned centers to data points.
-# radius: free centers for LLM/kmeans-like baselines; Taillard C++ methods report
-# their own radius-volume ratio directly.
+# Default final-center constraints used for scoring.
+# Selected LLM heuristics override these per folder:
+#   RADIUS_VOLUME_free_centers       -> free
+#   RADIUS_VOLUME_data_point_centers -> snap_to_points
+# Taillard C++ methods report their own radius-volume ratio directly.
 center_constraints:
   sse: free
   pmedian: snap_to_points
@@ -103,6 +108,7 @@ baselines:
     enabled: true
     repetitions: 10
     max_n: null
+    center_constraint: snap_to_points
 
   - id: python_kmedoids_fastpam
     group: external_baseline
@@ -111,6 +117,7 @@ baselines:
     enabled: true
     repetitions: 10
     max_n: null
+    center_constraint: snap_to_points
 
   - id: python_kmedoids_fasterpam
     group: external_baseline
@@ -119,6 +126,7 @@ baselines:
     enabled: true
     repetitions: 10
     max_n: null
+    center_constraint: snap_to_points
 
   # Large-scale p-median sampling baseline.
   - id: sklearn_extra_clara
@@ -127,6 +135,7 @@ baselines:
     objectives: [pmedian, radius]
     enabled: true
     repetitions: 30
+    center_constraint: snap_to_points
 
   # Radius-oriented secondary baseline: k-center minimizes max radius, not volume,
   # but it is useful as a simple radius-aware reference.
@@ -136,6 +145,7 @@ baselines:
     objectives: [radius]
     enabled: true
     repetitions: 30
+    center_constraint: snap_to_points
 
   # Taillard C++ radius-volume expert baselines.
   - id: taillard_cpp_kmedian
@@ -144,6 +154,7 @@ baselines:
     objectives: [radius]
     enabled: true
     repetitions: 30
+    center_constraint: snap_to_points
     cpp_option: 0
 
   - id: taillard_cpp_pam
@@ -152,6 +163,7 @@ baselines:
     objectives: [radius]
     enabled: true
     repetitions: 30
+    center_constraint: snap_to_points
     cpp_option: 1
 
   - id: taillard_cpp_hybrid_10p
@@ -160,4 +172,5 @@ baselines:
     objectives: [radius]
     enabled: true
     repetitions: 30
+    center_constraint: snap_to_points
     cpp_option: 2

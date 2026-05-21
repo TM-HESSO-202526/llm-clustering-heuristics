@@ -12,8 +12,8 @@ Added top-level files/folders:
 - configs/final_eval.yaml
 - docs/final_evaluation_protocol.md
 - scripts/run_final_evaluation.py
-- experiments/selected_heuristics_for_final_eval/
+- experiments/selected_clustering_heuristics_final_by_objective/
 
-The selected heuristics are copied under experiments/selected_heuristics_for_final_eval/ and grouped by objective.
+The selected heuristics are copied under experiments/selected_clustering_heuristics_final_by_objective/ and grouped by objective.
 
 Update: Removed the exposed final-evaluation scoring batch control. Final scoring now computes full distance matrices directly; a memory-saving option can be reintroduced later if needed.

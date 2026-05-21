@@ -6,7 +6,7 @@ This protocol is for the final thesis evaluation stage only. It does not call th
 
 The runner evaluates:
 
-1. the selected LLM-generated heuristics stored under `experiments/selected_heuristics_for_final_eval/`,
+1. the selected LLM-generated heuristics stored under `experiments/selected_clustering_heuristics_final_by_objective/`,
 2. Python/web baselines for SSE and p-median,
 3. radius-oriented secondary baselines,
 4. Prof. Taillard's C++ radius-volume baselines, compiled locally from `clustering_sphere.cpp` or `clustering cpp.zip`.
@@ -81,7 +81,7 @@ For a smoke test, reduce to one objective, one `p`, one dimension, one instance,
 The selected heuristics are loaded recursively from:
 
 ```text
-experiments/selected_heuristics_for_final_eval/
+experiments/selected_clustering_heuristics_final_by_objective/
 ```
 
 Objective mapping is by folder:
