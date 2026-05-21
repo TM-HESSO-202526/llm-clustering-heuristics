@@ -38,3 +38,9 @@ notebooks/00_final_evaluation_launcher.ipynb
 - Center repairs are printed and recorded.
 - Taillard's C++ radius-volume code is compiled and executed if `taillard_cpp.enabled=true`.
 - Complexity fits and PNG plots are written automatically.
+
+### Notes on references and CLARA
+
+The final-evaluation runner supports the text-log `kmeans.res` format used for SSE and p-median references. It extracts `best cost` for SSE and `cost pmed` for the p-median reference.
+
+The `sklearn_extra_clara` baseline is kept in the protocol. If the `scikit-learn-extra` binary wheel is incompatible with the active NumPy runtime, the runner automatically uses an internal CLARA-style sample + k-medoids fallback rather than dropping the CLARA baseline.

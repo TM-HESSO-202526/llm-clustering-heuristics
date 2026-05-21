@@ -15,9 +15,10 @@ instance_extract_dir: "/content/final_eval_cluster_tai_extract"
 reference_tables:
   sse: "/content/drive/MyDrive/TM/kmeans.res"
   pmedian: "/content/drive/MyDrive/TM/kmeans.res"
-  # Run C has two center models in the selected folder. Keep references separate
-  # so free-center Run C is not accidentally compared against data-point references.
-  radius_free: null
+  # Run C has two center models in the selected folder. Both variants use the same
+  # generator/last-p reference: the final p rows of each instance file, i.e. the
+  # centers used to generate the synthetic instance.
+  radius_free: "/content/drive/MyDrive/TM/generator_radius_reference_last_p.zip"
   radius_data_point: "/content/drive/MyDrive/TM/generator_radius_reference_last_p.zip"
   # Optional fallback only. Leave null unless you intentionally want one shared radius reference.
   radius: null
