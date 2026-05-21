@@ -1096,18 +1096,41 @@ def main() -> None:
     center_constraints = cfg.get("center_constraints", {"sse": "free", "pmedian": "snap_to_points", "radius": "free"})
     checkpoint_every = max(1, int(cfg.get("checkpoint_every", 1)))
 
-    jobs = []
+    # Build the job list in repetition-major order.
+    #
+    # Previous ordering was instance -> method -> rep, so one method/instance pair
+    # could consume all 30 repetitions before the run reached later methods or
+    # later instances. For a multi-day Colab run this is risky: if the run is cut
+    # short, the partial dataset is very unbalanced.
+    #
+    # New ordering is:
+    #   rep 1 for every eligible instance/method, then
+    #   rep 2 for every eligible instance/method, etc.
+    # This way any interrupted run still contains a balanced prefix of repetitions
+    # over the whole experiment grid. Methods with method-specific repetitions
+    # smaller than the global maximum are skipped after their last requested rep.
+    eligible_jobs = []
+    max_reps = 0
     for inst in instances:
         for m in methods:
-            obj = m["objective"]
             max_n = m.get("max_n")
             if max_n is not None and inst.n > int(max_n):
                 continue
             reps = int(m.get("repetitions") or default_reps)
-            for rep in range(reps):
+            if reps <= 0:
+                continue
+            eligible_jobs.append((inst, m, reps))
+            max_reps = max(max_reps, reps)
+
+    jobs = []
+    for rep in range(max_reps):
+        for inst, m, reps in eligible_jobs:
+            if rep < reps:
                 jobs.append((inst, m, rep))
+
     total_jobs = len(jobs)
     print(f"Planned jobs: {total_jobs}")
+    print(f"Job scheduling: repetition-major order; completed rep=1 grid before rep=2, etc. max_reps={max_reps}")
 
     # Resume support: load previous rows and skip completed objective/method/instance/rep tuples.
     resume_enabled = not args.no_resume and bool(cfg.get("resume", True))
