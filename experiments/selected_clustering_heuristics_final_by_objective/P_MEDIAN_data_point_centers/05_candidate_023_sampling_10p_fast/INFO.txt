@@ -1,0 +1,19 @@
+p-median sampling candidate 23
+
+Objective folder: P_MEDIAN_data_point_centers
+Folder: 05_candidate_023_sampling_10p_fast
+Reason selected: Fast 10p sample-based p-median representative.
+
+Algorithm name: Enhanced Sample-Based p-Median Heuristic with Iterative Farthest Point Clustering and Voronoi Refining
+Candidate id: 23
+Mean gap reference pct: 10.740413599619012
+Validity: 72/72
+Runtime seconds: 0.140284217066235
+Sample multiplier run: None
+
+Mechanism assigned: farthest-first spread + Lloyd/centroid refinement + sampling/coreset
+Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; sampling/coreset; local refinement
+
+Original code path: Runs_1/Runs/Runs semaine 13/1 - 10p Run B 1+1/__unzipped__llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/codes/iter_023_3d8dd9872df5083be1d3.py
+Copied code file: iter_023_3d8dd9872df5083be1d3.py
+Code SHA1: 1010b14c2a336680dc5d20f8f6fe5550b5e0cb77

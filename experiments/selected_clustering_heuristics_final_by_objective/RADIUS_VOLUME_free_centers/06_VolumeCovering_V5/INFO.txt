@@ -1,0 +1,19 @@
+VolumeCovering V5
+
+Objective folder: RADIUS_VOLUME_free_centers
+Folder: 06_VolumeCovering_V5
+Reason selected: Distinct radius-volume covering mechanism.
+
+Algorithm name: EnhancedVolumeCoveringHeuristicV5
+Candidate id: 8
+Mean gap reference pct: 7.182941933709771
+Validity: 24/24
+Runtime seconds: 2.130718678236008
+Sample multiplier run: None
+
+Mechanism assigned: recursive/coarse-to-fine split + sphere-covering/radius + farthest-first spread + Lloyd/centroid refinement
+Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; recursive split/decomposition; radius/covering specific; local refinement
+
+Original code path: Runs_1/Runs/Runs semaine 12/3 - Run C 1+1/__unzipped__llm_clustering_final_radius_20260507_153754_1_/llm_clustering_final_radius_20260507_153754/codes/iter_008_7f6a003aaa2f32ab3c38.py
+Copied code file: iter_008_7f6a003aaa2f32ab3c38.py
+Code SHA1: 35043cc72c4f94522058d69e7dddb36fe4856a50

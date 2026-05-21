@@ -1,0 +1,19 @@
+radius sample_50p candidate 4
+
+Objective folder: RADIUS_VOLUME_free_centers
+Folder: 03_candidate_004_sampling_50p_full_valid
+Reason selected: Broader-case full-valid 50p sampling radius candidate.
+
+Algorithm name: K-Means++ Initialization with Adaptive K-Means Iterations, Randomized Center Refinement, and Intra-Cluster Dispersion Mi
+Candidate id: 4
+Mean gap reference pct: 4.376477446266524
+Validity: 72/72
+Runtime seconds: 2.0510335995091333
+Sample multiplier run: 50.0
+
+Mechanism assigned: k-means++/weighted random seeding + farthest-first spread + Lloyd/centroid refinement
+Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; local refinement
+
+Original code path: Runs_1/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_1315/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_50p/codes/iter_004_48bcad7554bbc741b0f9.py
+Copied code file: iter_004_48bcad7554bbc741b0f9.py
+Code SHA1: d24d47a6f70bd1fe5ff2cd74e8f1e4d3d86c8f8a

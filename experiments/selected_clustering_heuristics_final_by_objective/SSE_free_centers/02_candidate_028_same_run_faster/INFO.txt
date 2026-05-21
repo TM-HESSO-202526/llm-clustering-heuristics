@@ -1,0 +1,19 @@
+SSE candidate 28, same run
+
+Objective folder: SSE_free_centers
+Folder: 02_candidate_028_same_run_faster
+Reason selected: Almost same quality as candidate 37, faster.
+
+Algorithm name: Adaptive Farthest-First Initialization with Enhanced Dynamic Hybrid Refinement, Randomized Restart, Adaptive Scoring, an
+Candidate id: 28
+Mean gap reference pct: 1.4042515870789838
+Validity: 24/24
+Runtime seconds: 15.700328717629114
+Sample multiplier run: None
+
+Mechanism assigned: k-means++/weighted random seeding + farthest-first spread + Lloyd/centroid refinement
+Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; noise/restart/annealing; local refinement
+
+Original code path: Runs_1/Runs/Runs semaine 12/1 - Run A 1+1/__unzipped__llm_clustering_final_sse_20260506_184835/llm_clustering_final_sse_20260506_184835/codes/iter_028_9d85b0c5e5d60ffc3c8c.py
+Copied code file: iter_028_9d85b0c5e5d60ffc3c8c.py
+Code SHA1: ea325fa003675469aa98b4a3f44486fb54f08eed

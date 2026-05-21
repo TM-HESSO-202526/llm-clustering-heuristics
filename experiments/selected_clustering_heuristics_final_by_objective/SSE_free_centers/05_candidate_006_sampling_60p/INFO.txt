@@ -1,0 +1,19 @@
+SSE sampling 60p candidate 6
+
+Objective folder: SSE_free_centers
+Folder: 05_candidate_006_sampling_60p
+Reason selected: Scalable sample-based SSE representative.
+
+Algorithm name: ImprovedKMeansSampleInitialization
+Candidate id: 6
+Mean gap reference pct: 10.876755513907847
+Validity: 72/72
+Runtime seconds: 0.4686257971657647
+Sample multiplier run: 60.0
+
+Mechanism assigned: noise/annealing perturbation + k-means++/weighted random seeding + Lloyd/centroid refinement + sampling/coreset
+Features: lloyd/kmeans assignment-update; kmeans++ probabilistic; sampling/coreset; noise/restart/annealing; local refinement
+
+Original code path: Runs_1/Runs/Runs semaine 13/11 - Rerun Run A 1+1 simple multiple xp patched/__unzipped__llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/sample_60p/codes/iter_006_b691cc7629b192e3ddd3.py
+Copied code file: iter_006_b691cc7629b192e3ddd3.py
+Code SHA1: a1e180a7531e78428cdd6da6e6af10631bc2f8c6

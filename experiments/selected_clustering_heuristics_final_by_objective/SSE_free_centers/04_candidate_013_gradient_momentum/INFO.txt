@@ -1,0 +1,19 @@
+SSE gradient/momentum candidate 13
+
+Objective folder: SSE_free_centers
+Folder: 04_candidate_013_gradient_momentum
+Reason selected: Different continuous-center gradient/momentum mechanism.
+
+Algorithm name: Adaptive Randomized Gradient Descent Clustering with Momentum, Regularization, and Initialization Refining using Hierarc
+Candidate id: 13
+Mean gap reference pct: 4.800578187200367
+Validity: 24/24
+Runtime seconds: 2.35164878765742
+Sample multiplier run: None
+
+Mechanism assigned: gradient/momentum continuous + farthest-first spread
+Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; gradient/continuous optimization
+
+Original code path: TM-20260520T134755Z-3-001_1/TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260516_105101/codes/iter_013_cdb12aa95b7ba4b22943.py
+Copied code file: iter_013_cdb12aa95b7ba4b22943.py
+Code SHA1: dd67991bc09b3824d96b0999cd70fabdb2d95966

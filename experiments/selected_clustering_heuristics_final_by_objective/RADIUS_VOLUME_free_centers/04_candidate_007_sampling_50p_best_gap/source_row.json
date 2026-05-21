@@ -1,0 +1,21 @@
+{
+  "objective_folder": "RADIUS_VOLUME_free_centers",
+  "folder": "04_candidate_007_sampling_50p_best_gap",
+  "label": "radius sample_50p candidate 7",
+  "reason_selected": "Best broad-case 50p sampling radius gap; one invalid case in source evaluation.",
+  "objective": "radius",
+  "candidate_id": 7,
+  "algo_name": "Adaptive K-Means++ with Radius-Based Center Refinement, Dispersion Minimization, and Intra-Cluster Radius Reduction",
+  "mean_gap_ref_pct": 1.6327211925820089,
+  "valid_cases": 71,
+  "total_cases": 72,
+  "runtime_s": 3.684753113322788,
+  "sample_multiplier_run": 50.0,
+  "source_name": "llm_final_candidate_summary.csv",
+  "source_dir": "Runs_1/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_1315/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_50p",
+  "original_code_file": "Runs_1/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_1315/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_50p/codes/iter_007_c61d6da6ff3b1add3b89.py",
+  "copied_code_file": "iter_007_c61d6da6ff3b1add3b89.py",
+  "code_sha1": "d54b900ce751e43777f1a5bd42e1b60283f705f3",
+  "mechanism_assigned": "k-means++/weighted random seeding + farthest-first spread + Lloyd/centroid refinement",
+  "feature_list": "lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; radius/covering specific; local refinement"
+}

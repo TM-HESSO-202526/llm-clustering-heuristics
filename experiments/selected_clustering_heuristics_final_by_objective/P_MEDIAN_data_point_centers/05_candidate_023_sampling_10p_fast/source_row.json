@@ -1,0 +1,21 @@
+{
+  "objective_folder": "P_MEDIAN_data_point_centers",
+  "folder": "05_candidate_023_sampling_10p_fast",
+  "label": "p-median sampling candidate 23",
+  "reason_selected": "Fast 10p sample-based p-median representative.",
+  "objective": "pmedian",
+  "candidate_id": 23,
+  "algo_name": "Enhanced Sample-Based p-Median Heuristic with Iterative Farthest Point Clustering and Voronoi Refining",
+  "mean_gap_ref_pct": 10.740413599619012,
+  "valid_cases": 72,
+  "total_cases": 72,
+  "runtime_s": 0.140284217066235,
+  "sample_multiplier_run": null,
+  "source_name": "llm_final_candidate_summary.csv",
+  "source_dir": "Runs_1/Runs/Runs semaine 13/1 - 10p Run B 1+1/__unzipped__llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111",
+  "original_code_file": "Runs_1/Runs/Runs semaine 13/1 - 10p Run B 1+1/__unzipped__llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/codes/iter_023_3d8dd9872df5083be1d3.py",
+  "copied_code_file": "iter_023_3d8dd9872df5083be1d3.py",
+  "code_sha1": "1010b14c2a336680dc5d20f8f6fe5550b5e0cb77",
+  "mechanism_assigned": "farthest-first spread + Lloyd/centroid refinement + sampling/coreset",
+  "feature_list": "lloyd/kmeans assignment-update; farthest-first/Gonzalez; sampling/coreset; local refinement"
+}

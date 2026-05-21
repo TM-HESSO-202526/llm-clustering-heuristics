@@ -1,0 +1,21 @@
+{
+  "objective_folder": "RADIUS_VOLUME_free_centers",
+  "folder": "02_candidate_035_recursive_sphere_covering_variant",
+  "label": "radius recursive sphere-covering candidate 35",
+  "reason_selected": "Second selected recursive sphere-covering variant.",
+  "objective": "radius",
+  "candidate_id": 35,
+  "algo_name": "AdaptiveRecursiveSphereCoveringWithRadiusRefinementAndDynamicCenterDiversificationV27",
+  "mean_gap_ref_pct": -19.83767532733324,
+  "valid_cases": 24,
+  "total_cases": 24,
+  "runtime_s": 5.712011466423671,
+  "sample_multiplier_run": null,
+  "source_name": "llm_final_candidate_summary.csv",
+  "source_dir": "Runs_1/Runs/Runs semaine 12/5 - Run C 1+1 edited/__unzipped__llm_clustering_final_radius_20260508_141633/llm_clustering_final_radius_20260508_141633",
+  "original_code_file": "Runs_1/Runs/Runs semaine 12/5 - Run C 1+1 edited/__unzipped__llm_clustering_final_radius_20260508_141633/llm_clustering_final_radius_20260508_141633/codes/iter_035_bf116e85544b051b8860.py",
+  "copied_code_file": "iter_035_bf116e85544b051b8860.py",
+  "code_sha1": "4371f3a5cd909b7e5c71691ccebc3b189ed44cf9",
+  "mechanism_assigned": "recursive/coarse-to-fine split + sphere-covering/radius + farthest-first spread + Lloyd/centroid refinement",
+  "feature_list": "lloyd/kmeans assignment-update; farthest-first/Gonzalez; recursive split/decomposition; radius/covering specific; local refinement"
+}

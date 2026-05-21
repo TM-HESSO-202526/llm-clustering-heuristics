@@ -1,0 +1,21 @@
+{
+  "objective_folder": "SSE_free_centers",
+  "folder": "05_candidate_006_sampling_60p",
+  "label": "SSE sampling 60p candidate 6",
+  "reason_selected": "Scalable sample-based SSE representative.",
+  "objective": "sse",
+  "candidate_id": 6,
+  "algo_name": "ImprovedKMeansSampleInitialization",
+  "mean_gap_ref_pct": 10.876755513907847,
+  "valid_cases": 72,
+  "total_cases": 72,
+  "runtime_s": 0.4686257971657647,
+  "sample_multiplier_run": 60.0,
+  "source_name": "llm_final_candidate_summary.csv",
+  "source_dir": "Runs_1/Runs/Runs semaine 13/11 - Rerun Run A 1+1 simple multiple xp patched/__unzipped__llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/sample_60p",
+  "original_code_file": "Runs_1/Runs/Runs semaine 13/11 - Rerun Run A 1+1 simple multiple xp patched/__unzipped__llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115/llm_clustering_runA_sse_sampling_multi_xp_8calls_fixed_prompt_patch_20260513_115325/sample_60p/codes/iter_006_b691cc7629b192e3ddd3.py",
+  "copied_code_file": "iter_006_b691cc7629b192e3ddd3.py",
+  "code_sha1": "a1e180a7531e78428cdd6da6e6af10631bc2f8c6",
+  "mechanism_assigned": "noise/annealing perturbation + k-means++/weighted random seeding + Lloyd/centroid refinement + sampling/coreset",
+  "feature_list": "lloyd/kmeans assignment-update; kmeans++ probabilistic; sampling/coreset; noise/restart/annealing; local refinement"
+}

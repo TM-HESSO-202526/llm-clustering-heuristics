@@ -1,0 +1,19 @@
+SSE edited candidate 28
+
+Objective folder: SSE_free_centers
+Folder: 03_candidate_028_edited_noise_injection
+Reason selected: Best speed/quality compromise; noisy annealed hybrid k-means style.
+
+Algorithm name: Improved Adaptive Hybrid K-Means with Enhanced Noise Injection and Iterative Refinement
+Candidate id: 28
+Mean gap reference pct: 1.6376634409848023
+Validity: 24/24
+Runtime seconds: 6.668024867773056
+Sample multiplier run: None
+
+Mechanism assigned: noise/annealing perturbation + k-means++/weighted random seeding + farthest-first spread + Lloyd/centroid refinement
+Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; noise/restart/annealing; local refinement
+
+Original code path: Runs_1/Runs/Runs semaine 12/4 - Run A 1+1 edited/__unzipped__llm_clustering_final_sse_20260508_125728/llm_clustering_final_sse_20260508_125728/codes/iter_028_e1054cdd0bb4ec67a203.py
+Copied code file: iter_028_e1054cdd0bb4ec67a203.py
+Code SHA1: 848c1b469d06895ed153819411777caaa97808ea

@@ -1,0 +1,21 @@
+{
+  "objective_folder": "RADIUS_VOLUME_free_centers",
+  "folder": "05_candidate_008_sampling_20p_fast_broad",
+  "label": "radius sampling 20p candidate 8",
+  "reason_selected": "Fast broad 20p sampling radius representative.",
+  "objective": "radius",
+  "candidate_id": 8,
+  "algo_name": "Adaptive Diversified Sample-Based K-Means++ with Enhanced Local Refining and Cluster Size Balancing",
+  "mean_gap_ref_pct": 9.66199722285985,
+  "valid_cases": 72,
+  "total_cases": 72,
+  "runtime_s": 0.1943759255939059,
+  "sample_multiplier_run": 20.0,
+  "source_name": "llm_final_candidate_summary.csv",
+  "source_dir": "Runs_1/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_1315/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_20p",
+  "original_code_file": "Runs_1/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_1315/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_20p/codes/iter_008_9fd79ee04ed10179fc88.py",
+  "copied_code_file": "iter_008_9fd79ee04ed10179fc88.py",
+  "code_sha1": "92134e1cb74f9fbbbf2edbafdee10d3b11b34ab6",
+  "mechanism_assigned": "noise/annealing perturbation + k-means++/weighted random seeding + farthest-first spread + Lloyd/centroid refinement",
+  "feature_list": "lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; sampling/coreset; noise/restart/annealing; quota/size balance; local refinement"
+}

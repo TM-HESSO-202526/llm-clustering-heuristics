@@ -1,0 +1,21 @@
+{
+  "objective_folder": "RADIUS_VOLUME_free_centers",
+  "folder": "06_VolumeCovering_V5",
+  "label": "VolumeCovering V5",
+  "reason_selected": "Distinct radius-volume covering mechanism.",
+  "objective": "radius",
+  "candidate_id": 8,
+  "algo_name": "EnhancedVolumeCoveringHeuristicV5",
+  "mean_gap_ref_pct": 7.182941933709771,
+  "valid_cases": 24,
+  "total_cases": 24,
+  "runtime_s": 2.130718678236008,
+  "sample_multiplier_run": null,
+  "source_name": "llm_final_candidate_summary.csv",
+  "source_dir": "Runs_1/Runs/Runs semaine 12/3 - Run C 1+1/__unzipped__llm_clustering_final_radius_20260507_153754_1_/llm_clustering_final_radius_20260507_153754",
+  "original_code_file": "Runs_1/Runs/Runs semaine 12/3 - Run C 1+1/__unzipped__llm_clustering_final_radius_20260507_153754_1_/llm_clustering_final_radius_20260507_153754/codes/iter_008_7f6a003aaa2f32ab3c38.py",
+  "copied_code_file": "iter_008_7f6a003aaa2f32ab3c38.py",
+  "code_sha1": "35043cc72c4f94522058d69e7dddb36fe4856a50",
+  "mechanism_assigned": "recursive/coarse-to-fine split + sphere-covering/radius + farthest-first spread + Lloyd/centroid refinement",
+  "feature_list": "lloyd/kmeans assignment-update; farthest-first/Gonzalez; recursive split/decomposition; radius/covering specific; local refinement"
+}

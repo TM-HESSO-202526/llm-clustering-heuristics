@@ -1,0 +1,19 @@
+radius recursive sphere-covering candidate 35
+
+Objective folder: RADIUS_VOLUME_free_centers
+Folder: 02_candidate_035_recursive_sphere_covering_variant
+Reason selected: Second selected recursive sphere-covering variant.
+
+Algorithm name: AdaptiveRecursiveSphereCoveringWithRadiusRefinementAndDynamicCenterDiversificationV27
+Candidate id: 35
+Mean gap reference pct: -19.83767532733324
+Validity: 24/24
+Runtime seconds: 5.712011466423671
+Sample multiplier run: None
+
+Mechanism assigned: recursive/coarse-to-fine split + sphere-covering/radius + farthest-first spread + Lloyd/centroid refinement
+Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; recursive split/decomposition; radius/covering specific; local refinement
+
+Original code path: Runs_1/Runs/Runs semaine 12/5 - Run C 1+1 edited/__unzipped__llm_clustering_final_radius_20260508_141633/llm_clustering_final_radius_20260508_141633/codes/iter_035_bf116e85544b051b8860.py
+Copied code file: iter_035_bf116e85544b051b8860.py
+Code SHA1: 4371f3a5cd909b7e5c71691ccebc3b189ed44cf9

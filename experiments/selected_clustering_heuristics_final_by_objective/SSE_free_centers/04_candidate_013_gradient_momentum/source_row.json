@@ -1,0 +1,21 @@
+{
+  "objective_folder": "SSE_free_centers",
+  "folder": "04_candidate_013_gradient_momentum",
+  "label": "SSE gradient/momentum candidate 13",
+  "reason_selected": "Different continuous-center gradient/momentum mechanism.",
+  "objective": "sse",
+  "candidate_id": 13,
+  "algo_name": "Adaptive Randomized Gradient Descent Clustering with Momentum, Regularization, and Initialization Refining using Hierarc",
+  "mean_gap_ref_pct": 4.800578187200367,
+  "valid_cases": 24,
+  "total_cases": 24,
+  "runtime_s": 2.35164878765742,
+  "sample_multiplier_run": null,
+  "source_name": "llm_final_candidate_summary.csv",
+  "source_dir": "TM-20260520T134755Z-3-001_1/TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260516_105101",
+  "original_code_file": "TM-20260520T134755Z-3-001_1/TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260516_105101/codes/iter_013_cdb12aa95b7ba4b22943.py",
+  "copied_code_file": "iter_013_cdb12aa95b7ba4b22943.py",
+  "code_sha1": "dd67991bc09b3824d96b0999cd70fabdb2d95966",
+  "mechanism_assigned": "gradient/momentum continuous + farthest-first spread",
+  "feature_list": "lloyd/kmeans assignment-update; farthest-first/Gonzalez; gradient/continuous optimization"
+}

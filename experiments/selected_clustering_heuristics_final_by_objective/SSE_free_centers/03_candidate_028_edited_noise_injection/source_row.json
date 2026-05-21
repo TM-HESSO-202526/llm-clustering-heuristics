@@ -1,0 +1,21 @@
+{
+  "objective_folder": "SSE_free_centers",
+  "folder": "03_candidate_028_edited_noise_injection",
+  "label": "SSE edited candidate 28",
+  "reason_selected": "Best speed/quality compromise; noisy annealed hybrid k-means style.",
+  "objective": "sse",
+  "candidate_id": 28,
+  "algo_name": "Improved Adaptive Hybrid K-Means with Enhanced Noise Injection and Iterative Refinement",
+  "mean_gap_ref_pct": 1.6376634409848023,
+  "valid_cases": 24,
+  "total_cases": 24,
+  "runtime_s": 6.668024867773056,
+  "sample_multiplier_run": null,
+  "source_name": "llm_final_candidate_summary.csv",
+  "source_dir": "Runs_1/Runs/Runs semaine 12/4 - Run A 1+1 edited/__unzipped__llm_clustering_final_sse_20260508_125728/llm_clustering_final_sse_20260508_125728",
+  "original_code_file": "Runs_1/Runs/Runs semaine 12/4 - Run A 1+1 edited/__unzipped__llm_clustering_final_sse_20260508_125728/llm_clustering_final_sse_20260508_125728/codes/iter_028_e1054cdd0bb4ec67a203.py",
+  "copied_code_file": "iter_028_e1054cdd0bb4ec67a203.py",
+  "code_sha1": "848c1b469d06895ed153819411777caaa97808ea",
+  "mechanism_assigned": "noise/annealing perturbation + k-means++/weighted random seeding + farthest-first spread + Lloyd/centroid refinement",
+  "feature_list": "lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; noise/restart/annealing; local refinement"
+}

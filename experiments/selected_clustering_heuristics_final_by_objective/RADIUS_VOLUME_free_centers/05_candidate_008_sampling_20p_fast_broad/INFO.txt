@@ -1,0 +1,19 @@
+radius sampling 20p candidate 8
+
+Objective folder: RADIUS_VOLUME_free_centers
+Folder: 05_candidate_008_sampling_20p_fast_broad
+Reason selected: Fast broad 20p sampling radius representative.
+
+Algorithm name: Adaptive Diversified Sample-Based K-Means++ with Enhanced Local Refining and Cluster Size Balancing
+Candidate id: 8
+Mean gap reference pct: 9.66199722285985
+Validity: 72/72
+Runtime seconds: 0.1943759255939059
+Sample multiplier run: 20.0
+
+Mechanism assigned: noise/annealing perturbation + k-means++/weighted random seeding + farthest-first spread + Lloyd/centroid refinement
+Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; sampling/coreset; noise/restart/annealing; quota/size balance; local refinement
+
+Original code path: Runs_1/Runs/Runs semaine 13/9 - Run C 1+1 simple multiple xp/__unzipped__llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_1315/llm_clustering_runC_radius_sampling_multi_xp_8calls_minimal_prompt_20260512_131557/sample_20p/codes/iter_008_9fd79ee04ed10179fc88.py
+Copied code file: iter_008_9fd79ee04ed10179fc88.py
+Code SHA1: 92134e1cb74f9fbbbf2edbafdee10d3b11b34ab6
