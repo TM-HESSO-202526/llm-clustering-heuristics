@@ -42,7 +42,7 @@ def _base_globals(tmp_path: Path, smoke_test: bool = True):
         "CANDIDATE_TIMEOUT_S": 30.0,
         "DISTANCE_BATCH_SIZE": 1024,
         "PARTIAL_FAILURE_PENALTY": 200.0,
-        "PROBE_WEIGHT": 0.5,
+        "PROBE_WEIGHT": 1.0,
         "FINAL_TOP_N": 5,
         "SEARCH_SPECS": [{"instance_id": 1, "d": 2, "p": 20}],
         "PROBE_SPECS": [{"instance_id": 1, "d": 2, "p": 100}],

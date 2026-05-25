@@ -173,7 +173,7 @@ def build_runtime_config_from_notebook_globals(
     )
     cfg["distance_batch_size"] = int(notebook_globals.get("DISTANCE_BATCH_SIZE", 1024))
     cfg["partial_failure_penalty"] = float(notebook_globals.get("PARTIAL_FAILURE_PENALTY", 200.0))
-    cfg["probe_weight"] = float(notebook_globals.get("PROBE_WEIGHT", 0.5))
+    cfg["probe_weight"] = float(notebook_globals.get("PROBE_WEIGHT", 1.0))
     cfg["final_top_n"] = int(notebook_globals.get("FINAL_TOP_N", 5))
 
     # Instance protocol.

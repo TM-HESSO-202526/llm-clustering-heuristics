@@ -89,7 +89,7 @@ CFG = {
     "candidate_timeout_s": 30.0,
     "distance_batch_size": 1024,
     "partial_failure_penalty": 200.0,
-    "probe_weight": 0.5,
+    "probe_weight": 1.0,
 
     # Global optional prompt-only decomposition/sampling mode.
     # If sampling_mode=True, the generated heuristic still receives the full X,

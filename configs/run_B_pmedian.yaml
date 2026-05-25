@@ -22,7 +22,7 @@ global_seed: 12345
 candidate_timeout_s: 30.0
 distance_batch_size: 1024
 partial_failure_penalty: 200.0
-probe_weight: 0.5
+probe_weight: 1.0
 search_specs:
 - instance_id: 1
   d: 2
