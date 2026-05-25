@@ -34,6 +34,17 @@ def _require(ns: Mapping[str, Any], name: str) -> Any:
     return ns[name]
 
 
+def _first_available(ns: Mapping[str, Any], *names: str, default: Any | None = None) -> Any:
+    """Return the first present notebook variable among several aliases."""
+    for name in names:
+        if name in ns:
+            return ns[name]
+    if default is not None:
+        return default
+    joined = " or ".join(names)
+    raise KeyError(f"Missing required notebook variable: {joined}")
+
+
 def build_runtime_config_from_notebook_globals(
     notebook_globals: Mapping[str, Any],
     runtime_dir: str | Path = "/content",
@@ -55,7 +66,14 @@ def build_runtime_config_from_notebook_globals(
     """
 
     run = str(_require(notebook_globals, "RUN")).upper()
-    run_configs = _require(notebook_globals, "RUN_CONFIGS")
+    run_configs = notebook_globals.get(
+        "RUN_CONFIGS",
+        {
+            "A": "configs/run_A_sse.yaml",
+            "B": "configs/run_B_pmedian.yaml",
+            "C": "configs/run_C_radius.yaml",
+        },
+    )
 
     if run not in run_configs:
         raise ValueError(f"RUN must be one of {sorted(run_configs)}, got {run!r}")
@@ -75,12 +93,14 @@ def build_runtime_config_from_notebook_globals(
     cfg["objective_mode"] = OBJECTIVE_BY_RUN[run]
     cfg["center_constraint"] = CENTER_CONSTRAINT_BY_RUN[run]
     cfg["max_total_attempts"] = (
-        1 if smoke_test else int(_require(notebook_globals, "MAX_TOTAL_ATTEMPTS"))
+        1
+        if smoke_test
+        else int(_first_available(notebook_globals, "MAX_LLM_CALLS", "MAX_TOTAL_ATTEMPTS"))
     )
 
     # LLM/provider settings.
-    cfg["provider"] = str(_require(notebook_globals, "PROVIDER"))
-    cfg["model"] = str(_require(notebook_globals, "MODEL"))
+    cfg["provider"] = str(_first_available(notebook_globals, "LLM_PROVIDER", "PROVIDER"))
+    cfg["model"] = str(_first_available(notebook_globals, "LLM_MODEL", "MODEL"))
     cfg["temperature"] = float(_require(notebook_globals, "TEMPERATURE"))
     cfg["top_p"] = float(_require(notebook_globals, "TOP_P"))
     cfg["groq_max_keys"] = int(_require(notebook_globals, "GROQ_MAX_KEYS"))
@@ -151,19 +171,15 @@ def build_runtime_config_from_notebook_globals(
     cfg["candidate_timeout_s"] = float(
         _require(notebook_globals, "CANDIDATE_TIMEOUT_S")
     )
-    cfg["distance_batch_size"] = int(
-        _require(notebook_globals, "DISTANCE_BATCH_SIZE")
-    )
-    cfg["partial_failure_penalty"] = float(
-        _require(notebook_globals, "PARTIAL_FAILURE_PENALTY")
-    )
-    cfg["probe_weight"] = float(_require(notebook_globals, "PROBE_WEIGHT"))
-    cfg["final_top_n"] = int(_require(notebook_globals, "FINAL_TOP_N"))
+    cfg["distance_batch_size"] = int(notebook_globals.get("DISTANCE_BATCH_SIZE", 1024))
+    cfg["partial_failure_penalty"] = float(notebook_globals.get("PARTIAL_FAILURE_PENALTY", 200.0))
+    cfg["probe_weight"] = float(notebook_globals.get("PROBE_WEIGHT", 0.5))
+    cfg["final_top_n"] = int(notebook_globals.get("FINAL_TOP_N", 5))
 
     # Instance protocol.
     cfg["search_specs"] = _require(notebook_globals, "SEARCH_SPECS")
     cfg["probe_specs"] = _require(notebook_globals, "PROBE_SPECS")
-    cfg["final_eval_scope"] = str(_require(notebook_globals, "FINAL_EVAL_SCOPE"))
+    cfg["final_eval_scope"] = str(notebook_globals.get("FINAL_EVAL_SCOPE", "id1_unseen"))
 
     # Paths.
     cfg["artifact_base_dir"] = str(_require(notebook_globals, "ARTIFACT_BASE_DIR"))
@@ -197,11 +213,6 @@ def build_runtime_config_from_notebook_globals(
         "top_p": cfg["top_p"],
         "selection_strategy": cfg["selection_strategy"],
         "historical_family_avoidance": cfg.get("historical_family_avoidance", False),
-        "family_novelty_mode": cfg.get("family_novelty_mode", False),
-        "family_memory_limit": cfg.get("family_memory_limit", 8),
-        "min_family_attempts_before_avoid": cfg.get("min_family_attempts_before_avoid", 2),
-        "weak_family_score_threshold": cfg.get("weak_family_score_threshold", 20.0),
-        "allow_strong_family_exploitation": cfg.get("allow_strong_family_exploitation", True),
         "sampling_mode": cfg.get("sampling_mode", False),
         "sampling_max_xp": cfg.get("sampling_max_xp", 10),
         "sampling_mode_label": cfg.get("sampling_mode_label", "off"),
