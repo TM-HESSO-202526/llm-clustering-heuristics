@@ -43,8 +43,6 @@ probe_specs:
 - instance_id: 1
   d: 4
   p: 70
-final_eval_scope: id1_unseen
-final_top_n: 5
 cluster_zip_path: data/raw/cluster_tai.zip
 cluster_zip_path_alt: /content/drive/MyDrive/TM/cluster_tai.zip
 kmeans_res_path: data/raw/kmeans.res

@@ -126,12 +126,6 @@ CFG = {
         {"instance_id": 1, "d": 4, "p": 70},
     ],
 
-    # Final evaluation scope:
-    #   "id1_unseen" -> all instance_id=1 instances except search specs
-    #   "all"        -> all instances with references for the active objective
-    #   "none"       -> skip final evaluation
-    "final_eval_scope": "id1_unseen",
-    "final_top_n": 5,
 
     # Paths. These are Drive-friendly but can be overridden in the notebook.
     "cluster_zip_path": "/content/drive/My Drive/TM/cluster_tai.zip",
@@ -1033,34 +1027,14 @@ def select_by_specs(df, specs, label):
 SEARCH_DF = select_by_specs(instances_df, CFG["search_specs"], "search")
 PROBE_DF = select_by_specs(instances_df, CFG["probe_specs"], "probe")
 
-search_keys = set(SEARCH_DF.apply(lambda r: spec_key(r), axis=1))
-
-if CFG["final_eval_scope"] == "id1_unseen":
-    FINAL_DF = instances_df[
-        (instances_df["instance_id"] == 1)
-        & (~instances_df.apply(lambda r: spec_key(r) in search_keys, axis=1))
-    ].copy()
-elif CFG["final_eval_scope"] == "all":
-    FINAL_DF = instances_df.copy()
-elif CFG["final_eval_scope"] == "none":
-    FINAL_DF = pd.DataFrame()
-else:
-    raise ValueError("CFG['final_eval_scope'] must be 'id1_unseen', 'all', or 'none'.")
-
 SEARCH_DF.to_csv(os.path.join(ARTIFACT_DIR, "search_instances.csv"), index=False)
 PROBE_DF.to_csv(os.path.join(ARTIFACT_DIR, "probe_instances.csv"), index=False)
-if not FINAL_DF.empty:
-    FINAL_DF.to_csv(os.path.join(ARTIFACT_DIR, "final_eval_instances.csv"), index=False)
 
 print("Search instances:")
 display(SEARCH_DF[["name", "n", "p", "d", "instance_id", "ref_cost"]])
 print("Probe instances:")
 display(PROBE_DF[["name", "n", "p", "d", "instance_id", "ref_cost"]])
-print("Final eval instances:", len(FINAL_DF))
-if len(FINAL_DF) > 0 and all(c in FINAL_DF.columns for c in ["name", "n", "p", "d", "instance_id", "ref_cost"]):
-    display(FINAL_DF[["name", "n", "p", "d", "instance_id", "ref_cost"]].head(20))
-else:
-    print("Final evaluation instance table is empty; final evaluation will be skipped.")
+print("Post-loop final evaluation: disabled in this pipeline.")
 
 
 
@@ -2099,86 +2073,12 @@ display(attempts_df.sort_values("selection_score").head(10))
 
 
 
-# =========================
-# Final evaluation of selected candidates
-# =========================
-
-if CFG["final_eval_scope"] == "none" or FINAL_DF.empty:
-    print("Final evaluation skipped.")
-else:
-    attempts_df = pd.read_csv(os.path.join(ARTIFACT_DIR, "llm_attempts.csv"))
-    eligible = attempts_df[(attempts_df["valid"] == True) & attempts_df["code_path"].notna()].copy()
-    eligible = eligible[np.isfinite(eligible["selection_score"])].sort_values("selection_score", ascending=True)
-
-    if eligible.empty:
-        print("No valid candidates available for final evaluation.")
-    else:
-        selected = eligible.head(int(CFG["final_top_n"])).copy()
-        selected.to_csv(os.path.join(ARTIFACT_DIR, "final_selected_candidates.csv"), index=False)
-        print("Selected candidates for final evaluation:")
-        display(selected[["iteration", "algo_name", "selection_score", "search_gap_ref_mean", "probe_gap_ref_mean", "code_path"]])
-
-        final_frames = []
-        for _, cand in selected.iterrows():
-            it = int(cand["iteration"])
-            code_path = cand["code_path"]
-            with open(code_path, "r", encoding="utf-8") as f:
-                code = f.read()
-            print(f"\n[final eval] iter={it} {cand['algo_name']}")
-            detail, summary = evaluate_generated_code_on_df(code, FINAL_DF, it, "final")
-            final_frames.append(detail)
-            print(" ", summary)
-
-        final_rows = pd.concat(final_frames, ignore_index=True)
-        final_rows.to_csv(os.path.join(ARTIFACT_DIR, "llm_final_instance_rows.csv"), index=False)
-
-        final_summary = (
-            final_rows.groupby("candidate_id")
-            .agg(
-                valid_cases=("valid", "sum"),
-                total_cases=("valid", "count"),
-                mean_gap_ref_pct=("gap_ref_pct", "mean"),
-                mean_cost=("cost", "mean"),
-                mean_sse=("sse", "mean"),
-                mean_dist_sum=("dist_sum", "mean"),
-                mean_radius_power_cost=("radius_power_cost", "mean"),
-                mean_max_radius=("max_radius", "mean"),
-                mean_runtime_s=("runtime_s", "mean"),
-            )
-            .reset_index()
-        )
-        final_summary = final_summary.merge(
-            selected[["iteration", "algo_name", "selection_score", "code_path"]],
-            left_on="candidate_id",
-            right_on="iteration",
-            how="left",
-        ).drop(columns=["iteration"])
-        final_summary = final_summary.sort_values("mean_gap_ref_pct", ascending=True)
-        final_summary.to_csv(os.path.join(ARTIFACT_DIR, "llm_final_candidate_summary.csv"), index=False)
-
-        by_dp = (
-            final_rows[final_rows["valid"] == True]
-            .groupby(["candidate_id", "d", "p"])
-            .agg(
-                mean_gap_ref_pct=("gap_ref_pct", "mean"),
-                mean_cost=("cost", "mean"),
-                mean_runtime_s=("runtime_s", "mean"),
-                cases=("instance", "count"),
-            )
-            .reset_index()
-        )
-        by_dp.to_csv(os.path.join(ARTIFACT_DIR, "llm_final_by_d_p_summary.csv"), index=False)
-
-        print("\nFinal candidate summary:")
-        display(final_summary)
-
-
 
 # =========================
 # Save config, summaries, zip artifacts
 # =========================
 
-config_path = os.path.join(ARTIFACT_DIR, "llm_final_config.json")
+config_path = os.path.join(ARTIFACT_DIR, "llm_run_config.json")
 with open(config_path, "w", encoding="utf-8") as f:
     json.dump(CFG, f, indent=2)
 
