@@ -442,8 +442,8 @@ From previous clustering runs, the following families were heavily over-generate
             "   - Do not simply choose random/k-means++-like centers and rely mainly on Lloyd-style centroid refinement.\n"
             "   - Bounded SSE-compatible refinement is allowed only as a small final repair step, not as the core heuristic.",
             "3. Distance-only farthest/spread initialization as the whole method\n"
-            "   - Do not only return another farthest-first or spread-based initializer without a genuinely different construction structure.\n"
-            "   - If spread is used, it must be embedded in a different mechanism such as decomposition, quota control, region coverage, or staged construction.",
+            "   - Do not only return another farthest-first or spread-based initializer as the whole method.\n"
+            "   - If spread is used, it must not be the main mechanism by itself.",
         ]
         objective_rules = [
             "- For Run A / SSE, centers may be free coordinates in R^d.",
@@ -459,8 +459,8 @@ From previous clustering runs, the following families were heavily over-generate
             "   - Do not make random medoid swaps, random replacements, or vague iterative replacement the main mechanism.\n"
             "   - Do not rely on exhaustive all-point swap searches or full PAM-style loops over all possible replacements.",
             "3. Farthest-first medoid selection alone\n"
-            "   - Do not only select far-apart medoids without contribution-aware, uncovered-demand, or bounded replacement logic.\n"
-            "   - Farthest-first may be used only as a component inside a structurally different p-median construction.",
+            "   - Do not only select far-apart medoids as the whole method.\n"
+            "   - If farthest-first is used, it must not be the main mechanism by itself.",
         ]
         objective_rules = [
             "- For Run B / p-median, final centers must be data points copied from X.",
@@ -470,8 +470,7 @@ From previous clustering runs, the following families were heavily over-generate
     elif mode == "radius":
         families = [
             "1. Generic volume-covering / nearest-center assignment loops\n"
-            "   - Do not generate another VolumeCoveringHeuristic / ImprovedVolumeCoveringHeuristic if the mechanism is only nearest-center assignment plus minor center movement.\n"
-            "   - Structural novelty must change how active medoids are selected, how high-radius clusters are split/repaired, or how radii are controlled.",
+            "   - Do not generate another VolumeCoveringHeuristic / ImprovedVolumeCoveringHeuristic if the mechanism is only nearest-center assignment plus minor center movement.",
             "2. Free-center movement or SSE/average-distance mechanisms\n"
             "   - Do not optimize SSE-like compactness, average distance, or centroid movement as the main mechanism.\n"
             "   - Final centers must remain selected data points / medoids.",
