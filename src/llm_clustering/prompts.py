@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pandas as pd
 
 SYSTEM_PROMPT = (
@@ -188,7 +189,7 @@ The method should be a hybrid decomposition heuristic: sample-based medoid initi
 High-dimensional radius-volume warning:
 This objective becomes much harsher as dimension increases because each cluster radius is raised to the power d.
 A heuristic that is acceptable in d=2 can fail badly in d=3 or d=4 if it leaves even a few clusters with large radii.
-Prioritize mechanisms that reduce the largest cluster radii and repair high-radius regions, especially in d=3 and d=4.
+Prioritize mechanisms that reduce the largest cluster radii and repair high-radius regions, especially in d=3/d=4.
 Do not optimize only average distance, SSE-like compactness, or 2D spread.
 
 Implementation detail:
@@ -230,7 +231,7 @@ High-dimensional radius-volume warning:
 This objective becomes much harsher as dimension increases because each cluster radius is raised to the power d.
 A heuristic that is acceptable in d=2 can fail badly in d=3 or d=4 if it leaves even a few clusters with large radii.
 
-For this Run C objective, prioritize mechanisms that reduce the largest cluster radii and repair high-radius clusters, especially in d=3 and d=4.
+For this Run C objective, prioritize mechanisms that reduce the largest cluster radii and repair high-radius clusters, especially in d=3/d=4.
 Do not optimize only average distance, SSE-like compactness, or 2D spread.
 When refining centers, identify clusters with the largest radius^d contribution and use bounded medoid replacements or splits to reduce those worst contributions.
 The goal is not only to improve the mean cluster quality, but to control the tail of bad cluster radii.
@@ -410,43 +411,323 @@ def compact_history(attempts_df: pd.DataFrame, limit: int) -> str:
     return "\n".join(lines)
 
 
+
+def _banned_family_summary(objective_mode: str) -> str:
+    mode = str(objective_mode).lower().strip()
+    if mode == "sse":
+        return "gradient/momentum center movement, plain random k-means/Lloyd variants, or Lloyd/refinement-centered cleanup"
+    if mode == "pmedian":
+        return "free-center k-means drift, generic random medoid swaps/replacements, exhaustive PAM-style all-point swaps, or farthest-first-only medoid selection"
+    if mode == "radius":
+        return "generic volume-covering loops, nearest-center assignment plus small free-center movement, deep recursive partitioning, or SSE/average-distance mechanisms that do not control high-radius clusters"
+    return "historically over-produced clustering mechanisms"
+
+
 def historical_family_avoidance_block(objective_mode: str) -> str:
-    """Objective-aware historical avoid-family prompt from previous artifact analysis."""
-    objective_mode = objective_mode.lower().strip()
-    header = (
-        "Historical family memory from previous clustering runs:\n"
-        "The following mechanism families were repeatedly observed in older Run A/B/C artifacts. "
-        "Use this as prior context, not as a hard ban. Avoid weak or stagnant families as minor variants, "
-        "but preserve/refine historically strong families if the selected parent genuinely belongs to one.\n"
-        "Do not merely add words such as enhanced, adaptive, hybrid, momentum, regularized, improved, or V2 "
-        "while keeping the same main mechanism."
-    )
-    if objective_mode == "sse":
-        body = (
-            "For Run A / SSE: avoid algorithms whose main mechanism is continuous gradient-style center "
-            "movement, pseudo-gradient descent, momentum, adaptive learning rates, or regularization.\n"
-            "Historically strong families are not banned: spread/farthest-first initialization with bounded "
-            "SSE-compatible Lloyd-style refinement may still be refined."
-        )
-    elif objective_mode == "pmedian":
-        body = (
-            "For Run B / p-median: avoid generic random medoid replacement, random swapping, exhaustive "
-            "all-point swap searches, vague iterative replacement strategies, and free-center k-means drift. "
-            "Final centers must remain selected data points. Historically strong families are not banned: "
-            "selected-point contribution / uncovered-demand construction may still be refined if it appears "
-            "naturally in the selected parent."
-        )
-    elif objective_mode == "radius":
-        body = (
-            "For Run C / radius-volume: final centers are now constrained to selected data points / medoids, matching "
-            "the Taillard kmedian/PAM/hybrid baseline setting. Avoid generic VolumeCoveringHeuristic variants that only rename the "
-            "same nearest-center assignment plus small free-center movement. Structural novelty should change active medoid usage, "
-            "high-radius cluster split/repair using data-point centers, and d=3/d=4 radius control."
-        )
+    """Strict objective-aware historical family-avoidance block, matching the TSP style."""
+    mode = str(objective_mode).lower().strip()
+
+    common_intro = """Historical family avoidance is ACTIVE.
+
+This run is not only trying to improve the best clustering score. It is explicitly testing whether the LLM can be pushed away from over-produced heuristic families and generate structurally different center-construction mechanisms.
+
+From previous clustering runs, the following families were heavily over-generated and must NOT be used again as the main mechanism:"""
+
+    if mode == "sse":
+        families = [
+            "1. Continuous gradient / momentum / regularized center movement\n"
+            "   - Do not make pseudo-gradient descent, adaptive learning rates, momentum, or regularization the main mechanism.\n"
+            "   - Do not disguise this as an enhanced, hybrid, adaptive, or V2 center-update method.",
+            "2. Plain random k-means / Lloyd-centered variants\n"
+            "   - Do not simply choose random/k-means++-like centers and rely mainly on Lloyd-style centroid refinement.\n"
+            "   - Bounded SSE-compatible refinement is allowed only as a small final repair step, not as the core heuristic.",
+            "3. Distance-only farthest/spread initialization as the whole method\n"
+            "   - Do not only return another farthest-first or spread-based initializer without a genuinely different construction structure.\n"
+            "   - If spread is used, it must be embedded in a different mechanism such as decomposition, quota control, region coverage, or staged construction.",
+        ]
+        objective_rules = [
+            "- For Run A / SSE, centers may be free coordinates in R^d.",
+            "- Optimize squared Euclidean SSE behavior if you compute internal scores.",
+            "- Do not build a full n x n distance matrix.",
+        ]
+    elif mode == "pmedian":
+        families = [
+            "1. Free-center k-means / centroid drift\n"
+            "   - Do not move centers as centroids or optimize SSE-style squared-distance behavior.\n"
+            "   - Final centers must remain selected data points copied from X.",
+            "2. generic random medoid replacement / random swap loops\n"
+            "   - Do not make random medoid swaps, random replacements, or vague iterative replacement the main mechanism.\n"
+            "   - Do not rely on exhaustive all-point swap searches or full PAM-style loops over all possible replacements.",
+            "3. Farthest-first medoid selection alone\n"
+            "   - Do not only select far-apart medoids without contribution-aware, uncovered-demand, or bounded replacement logic.\n"
+            "   - Farthest-first may be used only as a component inside a structurally different p-median construction.",
+        ]
+        objective_rules = [
+            "- For Run B / p-median, final centers must be data points copied from X.",
+            "- Use Euclidean distances, not squared distances, if you compute internal p-median scores.",
+            "- Do not build a full n x n distance matrix or exhaustive full-swap PAM loop.",
+        ]
+    elif mode == "radius":
+        families = [
+            "1. Generic volume-covering / nearest-center assignment loops\n"
+            "   - Do not generate another VolumeCoveringHeuristic / ImprovedVolumeCoveringHeuristic if the mechanism is only nearest-center assignment plus minor center movement.\n"
+            "   - Structural novelty must change how active medoids are selected, how high-radius clusters are split/repaired, or how radii are controlled.",
+            "2. Free-center movement or SSE/average-distance mechanisms\n"
+            "   - Do not optimize SSE-like compactness, average distance, or centroid movement as the main mechanism.\n"
+            "   - Final centers must remain selected data points / medoids.",
+            "3. Deep recursive partitioning with wasted centers\n"
+            "   - Do not generate recursive partitioning schemes that can recurse too deeply, create empty centers, or waste active medoids.\n"
+            "   - The construction must explicitly control large cluster radii, especially in d=3/d=4.",
+        ]
+        objective_rules = [
+            "- For Run C / radius-volume, final centers must be data points copied from X.",
+            "- Use Euclidean distances and cluster radii if you compute internal objective values.",
+            "- Keep exactly p active centers and avoid empty-center behavior.",
+            "- Do not build a full n x n distance matrix or exhaustive full PAM loop.",
+        ]
     else:
-        body = "Avoid historically repeated weak families and prefer structural novelty."
-    closing = (
-        "Your next heuristic should make a structural change in the main center-construction mechanism unless "
-        "the selected parent is already from a strong/improving family. Do not merely rename or decorate a weak family."
+        families = [
+            "1. Historically repeated weak families\n"
+            "   - Do not merely rename or lightly tune an over-produced clustering mechanism.\n"
+            "   - The main center-construction mechanism must be structurally different."
+        ]
+        objective_rules = ["- Return exactly p centers and respect the active objective constraints."]
+
+    common_rules = [
+        "- Define exactly one class named ClusteringHeuristic.",
+        "- Return exactly p centers with shape (p, d).",
+        "- Use only numpy/basic Python.",
+        "- Do not use sklearn, scipy, pandas, joblib, faiss, torch, or external clustering/optimization libraries.",
+        "- Keep the method scalable for n up to around 10,000 and p up to around 100.",
+    ]
+
+    return f"""{common_intro}
+
+{chr(10).join(families)}
+
+Your next heuristic must choose a genuinely different center-construction family. Strict novelty requirement:
+- The main construction mechanism must be different from {_banned_family_summary(mode)}.
+- Do not merely rename an old method.
+- Do not just add extra constants, thresholds, restarts, or a final local refinement to an old family.
+- In the generated code comments, briefly indicate the intended mechanism family.
+
+Still obey all clustering interface rules:
+{chr(10).join(common_rules + objective_rules)}"""
+
+
+def _redesign_instruction(
+    objective_mode: str,
+    *,
+    parent_timed_out: bool = False,
+    historical_avoidance_active: bool = False,
+) -> str:
+    base = (
+        "Selection mode: invalid/timeout-aware redesign fallback.\n"
+        "No fully valid heuristic has been found yet, and the selected parent is not fully valid"
+        + (" and appears to have timeout/runtime failures.\n" if parent_timed_out else ".\n")
+        + "Do not continue the same broken or expensive structure.\n"
+        + "Use the current-run feedback and parent code below only to understand the failure mode.\n"
+        + "The parent code is shown for diagnosis, but do not blindly mutate or continue the same broken/expensive structure.\n"
+        + "Redesign from scratch if the parent structure is the source of the failure.\n"
+        + "The first priority is to become valid on all search p-levels; then improve the active objective."
     )
-    return "\n".join([header, "", body, "", closing])
+    if historical_avoidance_active:
+        base += (
+            "\nHistorical family avoidance is active, so validity repair must not collapse back to a banned family. "
+            f"If the invalid parent uses {_banned_family_summary(objective_mode)}, treat that code as a failure example rather than as a template."
+        )
+    return base
+
+
+def _selection_instruction(
+    objective_mode: str,
+    strategy: str,
+    *,
+    parent_is_valid: bool,
+    historical_avoidance_active: bool = False,
+) -> str:
+    strategy = normalized_selection_strategy(strategy)
+    banned = _banned_family_summary(objective_mode)
+
+    if historical_avoidance_active:
+        if strategy == "1+1":
+            if parent_is_valid:
+                return (
+                    "Selection mode: 1+1 elitist improvement with historical family avoidance.\n"
+                    "The selected parent below is the current best-so-far full-valid heuristic under the active objective, "
+                    "but in this run it is mainly a score/validity reference, not a mechanism to preserve. "
+                    "Do not keep the parent structure merely because it is currently best. "
+                    f"If the parent belongs to a banned historical family, such as {banned}, redesign the main center-construction mechanism instead of mutating it. "
+                    "A lower score is useful, but the primary experimental goal is to test whether a genuinely different family can be generated while staying valid and scalable."
+                )
+            return (
+                "Selection mode: 1+1 with partial-validity fallback and historical family avoidance.\n"
+                "No fully valid heuristic has been found yet. The selected parent below is only a partial/latest candidate and must not anchor the search. "
+                "Your first priority is to return valid centers on all search p-levels, but do so with a main mechanism that respects the historical family-avoidance constraints. "
+                f"Do not repair validity by falling back to {banned}."
+            )
+        if parent_is_valid:
+            return (
+                "Selection mode: 1,1 sequential mutation chain with historical family avoidance.\n"
+                "The selected parent below is the most recent heuristic in the chain, not necessarily the best-so-far, "
+                "and it is a reference point rather than a structure to preserve. "
+                f"If the current parent belongs to a banned historical family, such as {banned}, make a genuine family-level change instead of continuing that mechanism. "
+                "Do not merely rename the parent, tune constants, add restarts, or add a small cleanup step to the same family. "
+                "The goal is to continue the chain with a valid, scalable heuristic from a structurally different center-construction family."
+            )
+        return (
+            "Selection mode: 1,1 sequential mutation chain with invalid-parent repair and historical family avoidance.\n"
+            "The selected parent below is the most recent heuristic in the chain and it may be invalid or only partially valid. "
+            "Use the feedback to understand the failure, but do not preserve a banned or over-produced family while repairing it. "
+            f"Your first priority is validity; your second priority is to keep the main mechanism structurally different from {banned}."
+        )
+
+    if strategy == "1+1":
+        if parent_is_valid:
+            return (
+                "Selection mode: 1+1 elitist improvement.\n"
+                "The selected parent below is the current best-so-far full-valid heuristic under the active objective. "
+                "Your goal is to improve on this parent while preserving useful mechanisms, keeping the class valid and scalable, "
+                "and avoiding changes that only add complexity without lowering the score."
+            )
+        return (
+            "Selection mode: 1+1 with partial-validity fallback.\n"
+            "No fully valid heuristic has been found yet. The selected parent below is the best partial/latest candidate available. "
+            "Your first priority is to make it valid on all p-levels; then improve the active objective."
+        )
+    if parent_is_valid:
+        return (
+            "Selection mode: 1,1 sequential mutation chain.\n"
+            "The selected parent below is the most recent heuristic in the chain, not necessarily the best-so-far. "
+            "Your goal is to explore a meaningful variation while keeping the heuristic valid and scalable. "
+            "Larger structural changes are acceptable, but use the feedback to avoid repeating known failures."
+        )
+    return (
+        "Selection mode: 1,1 sequential mutation chain.\n"
+        "The selected parent below is the most recent heuristic in the chain and it may be invalid or only partially valid. "
+        "Your first priority is to repair validity issues while still exploring a meaningful variation. "
+        "Use the feedback to avoid repeating known failures."
+    )
+
+
+def build_clustering_prompt(
+    objective_mode: str,
+    config: dict | None = None,
+    parent_code: str | None = None,
+    history_text: str | None = None,
+    prompt_mode: str = "initial",
+    parent_is_invalid: bool = False,
+    parent_summary: dict | None = None,
+    parent_timed_out: bool = False,
+    historical_memory: str | None = None,
+) -> str:
+    """Build the clustering LLaMEA prompt using the same structure as the TSP repo."""
+    cfg = config or {}
+    base = base_task_prompt(
+        objective_mode,
+        sampling_mode=bool(cfg.get("sampling_mode", cfg.get("run_c_d1_sampling_mode", False))),
+        sampling_max_xp=int(cfg.get("sampling_max_xp", cfg.get("run_c_d1_max_xp", 10))),
+        sampling_repair_full=bool(cfg.get("sampling_repair_full", False)),
+    )
+    strategy = normalized_selection_strategy(cfg.get("selection_strategy", "1+1"))
+    historical_memory = historical_memory or ""
+    historical_avoidance_active = bool(historical_memory.strip())
+
+    if parent_summary is None:
+        parent_summary = {}
+
+    if prompt_mode == "initial" or not parent_summary:
+        return f"""
+{base}
+
+{historical_memory}
+
+Generate the first heuristic for this active objective now.
+""".strip()
+
+    parent_json = json.dumps(parent_summary, indent=2, ensure_ascii=False)
+
+    if prompt_mode == "redesign_invalid_parent":
+        instruction = _redesign_instruction(
+            objective_mode,
+            parent_timed_out=parent_timed_out,
+            historical_avoidance_active=historical_avoidance_active,
+        )
+        code_block = ""
+        if parent_code:
+            code_block = f"""
+Invalid/partial parent full code, shown only for diagnosis:
+```python
+{parent_code}
+```
+"""
+        return f"""
+{base}
+
+{instruction}
+
+{historical_memory}
+
+Current-run invalid/partial parent summary:
+```json
+{parent_json}
+```
+
+{code_block}
+Important: the parent above is not fully valid.
+Use it to understand what failed, but do not simply continue the same broken or expensive structure.
+If the parent appears to time out, crash, return wrong shapes, waste centers, or use an objective-incompatible mechanism, redesign from scratch while avoiding that failure mode.
+
+Generate a fresh redesigned heuristic for the active objective.
+Keep the generated code numpy-only and respect the active center constraint:
+- sse: free centers
+- pmedian: final centers should be data points
+- radius: final centers should be data points / medoids
+
+Return the answer in the required # Name / # Code format.
+""".strip()
+
+    parent_is_valid = not bool(parent_is_invalid)
+    instruction = _selection_instruction(
+        objective_mode,
+        strategy,
+        parent_is_valid=parent_is_valid,
+        historical_avoidance_active=historical_avoidance_active,
+    )
+    history = history_text or "No previous attempts."
+    code_block = ""
+    if parent_code:
+        code_block = f"""
+Selected parent full code:
+```python
+{parent_code}
+```
+"""
+
+    return f"""
+{base}
+
+Previously generated heuristics for this active objective:
+{history}
+
+{historical_memory}
+
+{instruction}
+
+Selected parent summary:
+```json
+{parent_json}
+```
+
+{code_block}
+Repair, modify, or redesign the heuristic to improve the active objective.
+Use the score, runtime, error feedback, and p-level feedback above.
+If the parent failed on a p-level, fix that issue.
+If the parent was valid, try to lower the mean cost / mean gap versus the active reference.
+Keep the generated code numpy-only and respect the active center constraint:
+- sse: free centers
+- pmedian: final centers should be data points
+- radius: final centers should be data points / medoids
+
+Return the answer in the required # Name / # Code format.
+""".strip()

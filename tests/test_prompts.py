@@ -1,4 +1,4 @@
-from llm_clustering.prompts import base_task_prompt, historical_family_avoidance_block, objective_prompt_block
+from llm_clustering.prompts import base_task_prompt, build_clustering_prompt, historical_family_avoidance_block, objective_prompt_block
 
 
 def test_radius_prompt_keeps_nearest_distance_sentence_and_data_point_constraint():
@@ -21,7 +21,7 @@ def test_base_prompt_keeps_pmedian_prompt_neutral_except_objective_details():
 
 def test_historical_family_avoidance_is_objective_aware_and_not_hardwired_to_guidance_toggle():
     text = historical_family_avoidance_block("pmedian")
-    assert "Historical family memory" in text
+    assert "Historical family avoidance is ACTIVE" in text
     assert "generic random medoid replacement" in text
     assert "Final centers must remain selected data points" in text
     assert "pmedian_nucleation" not in text
@@ -63,3 +63,54 @@ def test_radius_sampling_prompt_exposes_prompt_only_hybrid_medoid_rules():
     assert "full-instance radius-volume repair" in text
     assert "data-point medoids" in text
     assert "No evaluator-side sampling" in text or "does not apply any hidden sampling" in text
+
+
+def test_historical_avoidance_changes_clustering_1plus1_valid_parent_instruction():
+    text = build_clustering_prompt(
+        "pmedian",
+        config={"selection_strategy": "1+1"},
+        parent_code="class ClusteringHeuristic:\n    pass",
+        history_text="history",
+        prompt_mode="mutate_parent",
+        parent_is_invalid=False,
+        parent_summary={"iteration": 1, "selection_score": 12.0},
+        historical_memory=historical_family_avoidance_block("pmedian"),
+    )
+    assert "1+1 elitist improvement with historical family avoidance" in text
+    assert "score/validity reference, not a mechanism to preserve" in text
+    assert "free-center k-means drift" in text
+    assert "redesign the main center-construction mechanism instead of mutating it" in text
+    assert "while preserving useful mechanisms" not in text
+
+
+def test_historical_avoidance_changes_clustering_1comma1_valid_parent_instruction():
+    text = build_clustering_prompt(
+        "radius",
+        config={"selection_strategy": "1,1"},
+        parent_code="class ClusteringHeuristic:\n    pass",
+        history_text="history",
+        prompt_mode="mutate_parent",
+        parent_is_invalid=False,
+        parent_summary={"iteration": 1, "selection_score": 12.0},
+        historical_memory=historical_family_avoidance_block("radius"),
+    )
+    assert "1,1 sequential mutation chain with historical family avoidance" in text
+    assert "reference point rather than a structure to preserve" in text
+    assert "generic volume-covering loops" in text
+    assert "make a genuine family-level change" in text
+
+
+def test_historical_avoidance_changes_clustering_redesign_instruction():
+    text = build_clustering_prompt(
+        "sse",
+        config={"selection_strategy": "1+1"},
+        parent_code="class ClusteringHeuristic:\n    pass",
+        prompt_mode="redesign_invalid_parent",
+        parent_is_invalid=True,
+        parent_timed_out=True,
+        parent_summary={"iteration": 1, "valid": False},
+        historical_memory=historical_family_avoidance_block("sse"),
+    )
+    assert "Historical family avoidance is active, so validity repair must not collapse back to a banned family" in text
+    assert "gradient/momentum center movement" in text
+    assert "treat that code as a failure example rather than as a template" in text

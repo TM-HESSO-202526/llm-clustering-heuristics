@@ -1513,196 +1513,6 @@ def build_family_summary(attempts_df):
     return out
 
 
-def objective_family_novelty_note(objective_mode):
-    if objective_mode == "sse":
-        return (
-            "For Run A/SSE, structural novelty means changing the constructive center-selection or "
-            "initialization mechanism, not merely adding more Lloyd-style refinement, gradient updates, "
-            "momentum, regularization, or renamed k-means variants."
-        )
-    if objective_mode == "pmedian":
-        return (
-            "For Run B/p-median, structural novelty means changing how selected data-point medoids are "
-            "chosen or replaced. Avoid drifting into free-center k-means, centroid movement, gradient "
-            "updates, or exhaustive all-point swap searches. Final centers must remain data points."
-        )
-    if objective_mode == "radius":
-        return (
-            "For Run C/radius-volume, structural novelty means changing how selected data-point centers/medoids "
-            "control cluster radii and active center usage. Avoid repeating generic volume-covering variants that only rename "
-            "the same radius assignment/refinement loop, especially if probe gaps in d=3 or d=4 remain high. "
-            "Final centers must remain data points."
-        )
-    return "Structural novelty means changing the main construction mechanism, not only renaming or tuning constants."
-
-
-
-
-def historical_family_avoidance_block(objective_mode):
-    """Return a static historical family-memory block built from previous artifact analysis.
-
-    This block is objective-aware but objective-neutral in the sense that it does not force
-    a target family such as p-median nucleation. It warns against historically repeated weak
-    families while explicitly preserving historically strong/improving families.
-    """
-    if not bool(CFG.get("historical_family_avoidance", False)):
-        return ""
-
-    common_header = (
-        "Historical family memory from previous clustering runs:\n"
-        "The following mechanism families were repeatedly observed in older Run A/B/C artifacts. "
-        "Use this as prior context, not as a hard ban. Avoid weak or stagnant families as minor variants, "
-        "but preserve/refine historically strong families if the selected parent genuinely belongs to one. "
-        "Do not merely add words such as enhanced, adaptive, hybrid, momentum, regularized, improved, or V2 "
-        "while keeping the same main mechanism."
-    )
-
-    sse = (
-        "For Run A / SSE: avoid algorithms whose main mechanism is continuous gradient-style center "
-        "movement, pseudo-gradient descent, momentum, adaptive learning rates, or regularization. Previous "
-        "runs repeatedly produced Randomized/Adaptive Gradient Descent variants, and these were much weaker "
-        "than spread-based constructive initialization followed by bounded SSE-compatible refinement. Also "
-        "avoid plain random k-means/Lloyd variants that do not use a strong constructive spread or farthest-first "
-        "initialization. Historically strong families are not banned: spread/farthest-first initialization with "
-        "bounded SSE-compatible Lloyd-style refinement may still be refined."
-    )
-
-    pmedian = (
-        "For Run B / p-median: avoid generic random medoid replacement, random swapping, exhaustive all-point "
-        "swap searches, and vague iterative replacement strategies. These families were repeatedly generated "
-        "and gave weak search/probe behavior. Also avoid free-center k-means drift: do not move centers as "
-        "centroids, do not use Lloyd-style centroid updates, and do not optimize squared-distance SSE behavior. "
-        "Final centers must remain selected data points. Farthest-first medoid selection alone is also not enough "
-        "if it is not combined with a meaningful contribution-aware selected-point construction or bounded "
-        "replacement rule. Historically strong families are not banned: selected-point contribution / uncovered-demand "
-        "construction may still be refined if it appears naturally in the selected parent."
-    )
-
-    radius = (
-        "For Run C / radius-volume: final centers are now constrained to selected data points / medoids, matching "
-        "the Taillard kmedian/PAM/hybrid baseline setting. Avoid generating another generic VolumeCoveringHeuristic / "
-        "ImprovedVolumeCoveringHeuristic / EnhancedVolumeCoveringHeuristic if the mechanism is only nearest-center "
-        "assignment plus small free-center movement. Previous runs often repeated this family without solving "
-        "high-dimensional probe failures. For this objective, structural novelty should change how active medoids are "
-        "selected, how high-radius clusters are split/repaired using data-point centers, and how the method controls "
-        "radii in d=3 and d=4, not just rename the same volume-covering loop. Avoid recursive partitioning schemes "
-        "that can recurse too deeply, waste centers, or create empty-center behavior. Historically strong radius-aware "
-        "active-center methods are not banned if they genuinely improve probe behavior, especially in d=3 and d=4."
-    )
-
-    mode = str(objective_mode).lower().strip()
-    if mode == "sse":
-        body = sse
-    elif mode == "pmedian":
-        body = pmedian
-    elif mode == "radius":
-        body = radius
-    else:
-        body = "Avoid historically repeated weak families and prefer a structural change in the main construction mechanism."
-
-    closing = (
-        "Your next heuristic should make a structural change in the main center-construction mechanism unless "
-        "the selected parent is already from a strong/improving family. Do not merely rename or decorate a weak family."
-    )
-    return "\n".join([common_header, "", body, "", closing])
-
-
-def build_family_memory_block(attempts_df, parent=None):
-    """Build the optional LLM-visible family-memory block.
-
-    The LLM sees concise family summaries, not code for all previous families. The selected
-    parent code is already provided elsewhere in the prompt.
-    """
-    if not bool(CFG.get("family_novelty_mode", False)):
-        return ""
-    summary = build_family_summary(attempts_df)
-    if summary.empty:
-        return ""
-
-    limit = int(CFG.get("family_memory_limit", 8))
-    min_attempts_before_avoid = int(CFG.get("min_family_attempts_before_avoid", 2))
-    threshold = float(CFG.get("weak_family_score_threshold", 20.0))
-    allow_strong = bool(CFG.get("allow_strong_family_exploitation", True))
-
-    weak_rows = []
-    strong_rows = []
-    early_rows = []
-    for _, r in summary.iterrows():
-        score = _finite_float(r.get("best_selection_score"))
-        is_strong = np.isfinite(score) and score <= threshold
-        item = (
-            f"- {r['family_sig']}: attempts={int(r['attempts'])}, valid={int(r['valid_attempts'])}, "
-            f"best_selection_score={score:.3f}"
-        )
-        sg = _finite_float(r.get("best_search_gap_ref_mean"))
-        pg = _finite_float(r.get("best_probe_gap_ref_mean"))
-        if np.isfinite(sg):
-            item += f", best_search_gap={sg:.3f}%"
-        if np.isfinite(pg):
-            item += f", best_probe_gap={pg:.3f}%"
-        item += f", notes: {r['family_desc']}"
-        attempts = int(r["attempts"])
-        if is_strong:
-            strong_rows.append(item)
-        elif attempts >= min_attempts_before_avoid:
-            weak_rows.append(item)
-        else:
-            early_rows.append(item)
-
-    weak_rows = weak_rows[:limit]
-    strong_rows = strong_rows[:limit]
-    early_rows = early_rows[:limit]
-
-    parent_family = ""
-    if parent is not None:
-        parent_family = str(parent.get("family_sig", "") or "").strip()
-
-    parts = [
-        "Family novelty memory:",
-        "The following mechanism-family summary is based only on previous attempts in this run.",
-        "It is a compact summary; previous family code is not repeated here.",
-        f"A family is only treated as weak/stagnant after at least {min_attempts_before_avoid} attempts in this run.",
-        objective_family_novelty_note(OBJECTIVE_MODE),
-        "",
-    ]
-
-    if weak_rows:
-        parts.append("Weak or stagnant families to avoid repeating as minor variants:")
-        parts.extend(weak_rows)
-        parts.append("")
-        parts.append(
-            "Do not generate another small variation of these weak families. Avoid merely adding words such as "
-            "enhanced, adaptive, hybrid, momentum, regularized, or improved to the same mechanism."
-        )
-    else:
-        parts.append("No clearly weak/stagnant family has accumulated enough evidence yet.")
-
-    if early_rows:
-        parts.append("")
-        parts.append(
-            "Families observed but not yet avoided because they have too few attempts in this run "
-            f"(< {min_attempts_before_avoid} attempts):"
-        )
-        parts.extend(early_rows)
-
-    if allow_strong and strong_rows:
-        parts.append("")
-        parts.append("Strong or improving families may still be refined if the selected parent belongs to them:")
-        parts.extend(strong_rows)
-
-    if parent_family:
-        parts.append("")
-        parts.append(f"Selected parent inferred family: {parent_family} — {family_description(parent_family)}")
-
-    parts.append("")
-    parts.append(
-        "Generate a structurally different constructive heuristic unless the selected parent belongs to a genuinely "
-        "strong/improving family. A structural change means changing the main center-selection or cluster-construction "
-        "mechanism, not just tuning constants or adding another refinement loop."
-    )
-    return "\n".join(parts)
-
-
 def normalized_selection_strategy():
     """Return canonical selection strategy label."""
     raw = str(CFG.get("selection_strategy", "1+1")).strip().lower().replace(" ", "")
@@ -1762,21 +1572,6 @@ def parent_has_timeout_failure(parent):
     )
 
 
-def objective_redesign_instruction(parent_timed_out=False):
-    """Generic redesign fallback text used while still exposing the invalid parent code."""
-    header = (
-        "Selection mode: invalid/timeout-aware redesign fallback.\n"
-        "No fully valid heuristic has been found yet, and the selected parent is not fully valid"
-        + (" and appears to have timeout/runtime failures.\n" if parent_timed_out else ".\n")
-        + "Do not continue the same broken or expensive structure.\n"
-        + "Use the current-run feedback and parent code below only to understand the failure mode.\n"
-        + "The parent code is shown for diagnosis, but do not blindly mutate or continue the same broken/expensive structure.\n"
-        + "Redesign from scratch if the parent structure is the source of the failure.\n"
-        + "The first priority is to become valid on all search p-levels; then improve the active objective."
-    )
-    return header
-
-
 def _is_valid_path_value(x):
     """Return True only for non-empty filesystem path values.
 
@@ -1800,18 +1595,40 @@ def _is_valid_path_value(x):
         return False
 
 
+
+def _prompt_module_helpers():
+    """Import prompt helpers from src so the script and tests use the same prompt structure."""
+    import sys as _sys
+    _src_dir = Path(__file__).resolve().parents[1] / "src"
+    if str(_src_dir) not in _sys.path:
+        _sys.path.insert(0, str(_src_dir))
+    from llm_clustering.prompts import (
+        build_clustering_prompt as _build_clustering_prompt,
+        historical_family_avoidance_block as _historical_family_avoidance_block,
+    )
+    return _build_clustering_prompt, _historical_family_avoidance_block
+
+
+def historical_family_avoidance_block(objective_mode):
+    """Strict historical family avoidance, gated by CFG like the TSP repo."""
+    if not bool(CFG.get("historical_family_avoidance", False)):
+        return ""
+    _, _historical_family_avoidance_block = _prompt_module_helpers()
+    return _historical_family_avoidance_block(objective_mode)
+
+
 def build_prompt(iteration, attempts_df):
     parent, reason = select_parent(attempts_df)
+    _build_clustering_prompt, _ = _prompt_module_helpers()
+    historical_memory = historical_family_avoidance_block(OBJECTIVE_MODE)
 
     if parent is None:
-        historical_memory = historical_family_avoidance_block(OBJECTIVE_MODE)
-        user = f"""
-{BASE_TASK_PROMPT}
-
-{historical_memory}
-
-Generate the first heuristic for this active objective now.
-""".strip()
+        user = _build_clustering_prompt(
+            OBJECTIVE_MODE,
+            config=CFG,
+            prompt_mode="initial",
+            historical_memory=historical_memory,
+        )
         return [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}], None, reason
 
     parent_is_valid = bool(parent.get("valid", False))
@@ -1866,115 +1683,21 @@ Generate the first heuristic for this active objective now.
         "invalid_redesign_mode": bool(invalid_redesign_mode),
     }
 
-    historical_memory = historical_family_avoidance_block(OBJECTIVE_MODE)
-    family_memory = build_family_memory_block(attempts_df, parent=parent)
-
-    strategy = normalized_selection_strategy()
-
-    if invalid_redesign_mode:
-        instruction = objective_redesign_instruction(parent_timed_out=parent_timed_out)
-        user = f"""
-{BASE_TASK_PROMPT}
-
-{instruction}
-
-{historical_memory}
-
-{family_memory}
-
-Current-run invalid/partial parent summary:
-```json
-{json.dumps(parent_summary, indent=2, ensure_ascii=False)}
-```
-
-Invalid/partial parent full code, shown only for diagnosis:
-```python
-{parent_code}
-```
-
-Important: the parent above is not fully valid. Use it to understand what failed, but do not simply continue the same broken or expensive structure. If the parent appears to time out, crash, return wrong shapes, waste centers, or use an objective-incompatible mechanism, redesign from scratch while avoiding that failure mode.
-
-Generate a fresh redesigned heuristic for the active objective.
-Keep the generated code numpy-only and respect the active center constraint:
-- sse: free centers
-- pmedian: final centers should be data points
-- radius: final centers should be data points / medoids
-
-Return the answer in the required # Name / # Code format.
-""".strip()
-        return [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}], parent, reason
-
-    if strategy == "1+1":
-        if parent_is_valid:
-            instruction = (
-                "Selection mode: 1+1 elitist improvement.\n"
-                "The selected parent below is the current best-so-far full-valid heuristic under the active objective. "
-                "Your goal is to improve on this parent while preserving useful mechanisms, keeping the class valid and scalable, "
-                "and avoiding changes that only add complexity without lowering the score."
-            )
-        else:
-            instruction = (
-                "Selection mode: 1+1 with partial-validity fallback.\n"
-                "No fully valid heuristic has been found yet. The selected parent below is the best partial/latest candidate available. "
-                "Your first priority is to make it valid on all p-levels; then improve the active objective."
-            )
-    else:
-        if parent_is_valid:
-            instruction = (
-                "Selection mode: 1,1 sequential mutation chain.\n"
-                "The selected parent below is the most recent heuristic in the chain, not necessarily the best-so-far. "
-                "Your goal is to explore a meaningful variation while keeping the heuristic valid and scalable. "
-                "Larger structural changes are acceptable, but use the feedback to avoid repeating known failures."
-            )
-        else:
-            instruction = (
-                "Selection mode: 1,1 sequential mutation chain.\n"
-                "The selected parent below is the most recent heuristic in the chain and it may be invalid or only partially valid. "
-                "Your first priority is to repair validity issues while still exploring a meaningful variation. "
-                "Use the feedback to avoid repeating known failures."
-            )
-
-    user = f"""
-{BASE_TASK_PROMPT}
-
-Previously generated heuristics for this active objective:
-{compact_history(attempts_df, int(CFG["history_limit"]))}
-
-{historical_memory}
-
-{family_memory}
-
-{instruction}
-
-Selected parent summary:
-```json
-{json.dumps(parent_summary, indent=2, ensure_ascii=False)}
-```
-
-Selected parent full code:
-```python
-{parent_code}
-```
-
-Repair, modify, or redesign the heuristic to improve the active objective.
-Use the score, runtime, error feedback, and p-level feedback above.
-If the parent failed on a p-level, fix that issue.
-If the parent was valid, try to lower the mean cost / mean gap versus the active reference.
-Keep the generated code numpy-only and respect the active center constraint:
-- sse: free centers
-- pmedian: final centers should be data points
-- radius: final centers should be data points / medoids
-
-Return the answer in the required # Name / # Code format.
-""".strip()
-
+    user = _build_clustering_prompt(
+        OBJECTIVE_MODE,
+        config=CFG,
+        parent_code=parent_code,
+        history_text=compact_history(attempts_df, int(CFG["history_limit"])),
+        prompt_mode="redesign_invalid_parent" if invalid_redesign_mode else "mutate_parent",
+        parent_is_invalid=not parent_is_valid,
+        parent_summary=parent_summary,
+        parent_timed_out=parent_timed_out,
+        historical_memory=historical_memory,
+    )
     return [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}], parent, reason
 
 
-print("Unified prompt builder ready for objective:", OBJECTIVE_MODE)
-print("Selection strategy:", normalized_selection_strategy())
 print("Historical family avoidance:", CFG.get("historical_family_avoidance", False))
-print("Family novelty mode:", CFG.get("family_novelty_mode", False), "| memory limit:", CFG.get("family_memory_limit", 8), "| min attempts before avoid:", CFG.get("min_family_attempts_before_avoid", 2), "| weak threshold:", CFG.get("weak_family_score_threshold", 20.0), "| allow strong exploitation:", CFG.get("allow_strong_family_exploitation", True))
 _sampling_mode_label = "prompt_internal_hybrid" if sampling_mode_is_enabled() else "off"
 print("Sampling mode:", sampling_mode_is_enabled(), "| mode:", _sampling_mode_label, "| max xp:", sampling_max_xp_value())
 if sampling_mode_is_enabled():
