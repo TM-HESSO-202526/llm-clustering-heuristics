@@ -514,11 +514,56 @@ Still obey all clustering interface rules:
 {chr(10).join(common_rules + objective_rules)}"""
 
 
+def family_focus_block(focus: dict | None) -> str:
+    """Build the family-focus/island prompt block for the active objective."""
+    if not focus:
+        return ""
+    constraints = focus.get("strict_constraints") or []
+    constraint_lines = "\n".join(f"- {str(c).strip()}" for c in constraints if str(c).strip())
+    if constraint_lines:
+        constraint_lines += "\n"
+
+    family_index = focus.get("family_index", "?")
+    total_families = focus.get("total_families", "?")
+    call_inside = focus.get("call_inside_family", "?")
+    calls_per_family = focus.get("calls_per_family", "?")
+
+    return f"""Family-focus mode is ACTIVE.
+
+For the next generated heuristic, you are locked to the following family:
+
+Family id:
+{focus.get('id', '')}
+
+Family name:
+{focus.get('name', '')}
+
+Family objective:
+{focus.get('objective', '')}
+
+Family description from launcher:
+{focus.get('description', '')}
+
+Family block: {family_index}/{total_families}
+Call inside this family block: {call_inside}/{calls_per_family}
+
+Strict constraints:
+{constraint_lines}- Your task is to improve this family, not to switch families.
+- The declared family must be the main center-construction mechanism, not a cosmetic wrapper.
+- Do not compute the family-specific structure and then ignore it.
+- Do not switch to the over-generated default family for the active objective.
+- Bounded refinement is allowed only after the family-specific construction and must not be the sole source of quality.
+- Keep the method scalable and robust for the active benchmark, especially in higher-dimensional d=4 cases when they appear.
+
+Only use the local parent and local history from this same family block. Ignore successful heuristics from other family blocks as mechanisms to preserve. At the end of the run, the backend will compare the best candidate from each family separately.""".strip()
+
+
 def _redesign_instruction(
     objective_mode: str,
     *,
     parent_timed_out: bool = False,
     historical_avoidance_active: bool = False,
+    family_focus_active: bool = False,
 ) -> str:
     base = (
         "Selection mode: invalid/timeout-aware redesign fallback.\n"
@@ -535,6 +580,11 @@ def _redesign_instruction(
             "\nHistorical family avoidance is active, so validity repair must not collapse back to a banned family. "
             f"If the invalid parent uses {_banned_family_summary(objective_mode)}, treat that code as a failure example rather than as a template."
         )
+    if family_focus_active:
+        base += (
+            "\nFamily-focus mode is active. Repair validity while staying inside the currently locked family. "
+            "Do not escape the family block just because the parent is invalid, slow, or low quality."
+        )
     return base
 
 
@@ -544,9 +594,40 @@ def _selection_instruction(
     *,
     parent_is_valid: bool,
     historical_avoidance_active: bool = False,
+    family_focus_active: bool = False,
 ) -> str:
     strategy = normalized_selection_strategy(strategy)
     banned = _banned_family_summary(objective_mode)
+
+    if family_focus_active:
+        if strategy == "1+1":
+            if parent_is_valid:
+                return (
+                    "Selection mode: 1+1 family-focused exploitation.\n"
+                    "The selected parent below is the current best-so-far full-valid heuristic within this same focus family only. "
+                    "Use it as a local score/validity reference for this family block. Improve or redesign it while preserving the locked family as the main mechanism. "
+                    "Do not switch to the objective's default over-produced family, and do not make bounded refinement the whole method. "
+                    "A lower score is useful, but this block is primarily testing whether this specific family can be made valid, scalable, and competitive."
+                )
+            return (
+                "Selection mode: 1+1 family-focused partial-validity fallback.\n"
+                "No fully valid heuristic has been found yet inside this focus family. The selected parent below is only a partial/latest candidate from this same family block. "
+                "Your first priority is to return valid centers on all search p-levels while staying inside the locked family. "
+                "Do not repair validity by escaping to the objective's default over-produced family."
+            )
+        if parent_is_valid:
+            return (
+                "Selection mode: 1,1 family-focused sequential chain.\n"
+                "The selected parent below is the most recent heuristic inside this same focus family block. "
+                "Continue the chain by improving the locked family, not by changing family. "
+                "Do not merely rename the parent, tune constants, add restarts, or add a cleanup/refinement step while abandoning the declared mechanism."
+            )
+        return (
+            "Selection mode: 1,1 family-focused invalid-parent repair.\n"
+            "The selected parent below is the most recent heuristic inside this same focus family block and it may be invalid or only partially valid. "
+            "Use the feedback to repair validity while preserving the locked family as the main mechanism. "
+            "Do not escape to the objective's default over-produced family."
+        )
 
     if historical_avoidance_active:
         if strategy == "1+1":
@@ -619,6 +700,7 @@ def build_clustering_prompt(
     parent_summary: dict | None = None,
     parent_timed_out: bool = False,
     historical_memory: str | None = None,
+    family_focus: dict | None = None,
 ) -> str:
     """Build the clustering LLaMEA prompt using the same structure as the TSP repo."""
     cfg = config or {}
@@ -631,6 +713,8 @@ def build_clustering_prompt(
     strategy = normalized_selection_strategy(cfg.get("selection_strategy", "1+1"))
     historical_memory = historical_memory or ""
     historical_avoidance_active = bool(historical_memory.strip())
+    family_focus_text = family_focus_block(family_focus)
+    family_focus_active = bool(family_focus_text.strip())
 
     if parent_summary is None:
         parent_summary = {}
@@ -640,6 +724,8 @@ def build_clustering_prompt(
 {base}
 
 {historical_memory}
+
+{family_focus_text}
 
 Generate the first heuristic for this active objective now.
 """.strip()
@@ -651,6 +737,7 @@ Generate the first heuristic for this active objective now.
             objective_mode,
             parent_timed_out=parent_timed_out,
             historical_avoidance_active=historical_avoidance_active,
+            family_focus_active=family_focus_active,
         )
         code_block = ""
         if parent_code:
@@ -666,6 +753,8 @@ Invalid/partial parent full code, shown only for diagnosis:
 {instruction}
 
 {historical_memory}
+
+{family_focus_text}
 
 Current-run invalid/partial parent summary:
 ```json
@@ -692,6 +781,7 @@ Return the answer in the required # Name / # Code format.
         strategy,
         parent_is_valid=parent_is_valid,
         historical_avoidance_active=historical_avoidance_active,
+        family_focus_active=family_focus_active,
     )
     history = history_text or "No previous attempts."
     code_block = ""
@@ -710,6 +800,8 @@ Previously generated heuristics for this active objective:
 {history}
 
 {historical_memory}
+
+{family_focus_text}
 
 {instruction}
 

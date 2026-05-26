@@ -83,6 +83,14 @@ CFG = {
     # Search loop
     "max_total_attempts": 40,
     "history_limit": 20,
+
+    # Family-focus / island exploitation mode.
+    # When enabled, the run is split into one local search block per objective-specific family.
+    # Each family has its own local parent/history; the backend compares best candidates at the end.
+    "family_focus_mode": False,
+    "family_focus_calls_per_family": 20,
+    "family_focus_plan": [],
+
     "global_seed": 12345,
 
     # Evaluation controls
@@ -1591,7 +1599,104 @@ def historical_family_avoidance_block(objective_mode):
     return _historical_family_avoidance_block(objective_mode)
 
 
-def build_prompt(iteration, attempts_df):
+def family_focus_is_enabled():
+    return bool(CFG.get("family_focus_mode", False))
+
+
+def enabled_family_focus_plan():
+    if not family_focus_is_enabled():
+        return []
+    plan = CFG.get("family_focus_plan") or []
+    enabled = []
+    for item in plan:
+        if bool(item.get("enabled", True)):
+            enabled.append(dict(item))
+    return enabled
+
+
+def build_family_focus_schedule():
+    plan = enabled_family_focus_plan()
+    if not plan:
+        return [
+            {"iteration": i, "family_focus": None}
+            for i in range(1, int(CFG["max_total_attempts"]) + 1)
+        ]
+
+    calls_per_family = int(CFG.get("family_focus_calls_per_family", 20))
+    total_families = len(plan)
+    schedule = []
+    iteration = 0
+    for fam_idx, fam in enumerate(plan, start=1):
+        for call_idx in range(1, calls_per_family + 1):
+            iteration += 1
+            focus = dict(fam)
+            focus["family_index"] = fam_idx
+            focus["total_families"] = total_families
+            focus["call_inside_family"] = call_idx
+            focus["calls_per_family"] = calls_per_family
+            schedule.append({"iteration": iteration, "family_focus": focus})
+    return schedule
+
+
+def build_family_focus_summary(attempts_df):
+    if attempts_df is None or len(attempts_df) == 0 or "focus_family_id" not in attempts_df.columns:
+        return pd.DataFrame()
+    rows = []
+    focus_df = attempts_df[attempts_df["focus_family_id"].fillna("") != ""].copy()
+    for fid, g in focus_df.groupby("focus_family_id", sort=False):
+        valid_g = g[g.get("valid", False) == True].copy() if "valid" in g.columns else g.iloc[0:0]
+        probe_valid_g = g[g.get("probe_valid", False) == True].copy() if "probe_valid" in g.columns else g.iloc[0:0]
+        best = g.sort_values("selection_score", ascending=True, na_position="last").iloc[0]
+        best_valid = None
+        if len(valid_g):
+            best_valid = valid_g.sort_values("selection_score", ascending=True, na_position="last").iloc[0]
+        rows.append({
+            "focus_family_id": fid,
+            "focus_family_name": str(g.get("focus_family_name", pd.Series([""])).iloc[0]),
+            "attempts": int(len(g)),
+            "valid_attempts": int(len(valid_g)),
+            "probe_valid_attempts": int(len(probe_valid_g)),
+            "best_iteration": int(best.get("iteration", -1)),
+            "best_algo_name": best.get("algo_name", ""),
+            "best_inferred_family": best.get("family_sig", ""),
+            "best_selection_score": best.get("selection_score", np.nan),
+            "best_search_gap_ref_mean": best.get("search_gap_ref_mean", np.nan),
+            "best_probe_gap_ref_mean": best.get("probe_gap_ref_mean", np.nan),
+            "best_code_path": best.get("code_path", ""),
+            "best_valid_iteration": None if best_valid is None else int(best_valid.get("iteration", -1)),
+            "best_valid_algo_name": "" if best_valid is None else best_valid.get("algo_name", ""),
+            "best_valid_selection_score": np.nan if best_valid is None else best_valid.get("selection_score", np.nan),
+            "best_valid_search_gap_ref_mean": np.nan if best_valid is None else best_valid.get("search_gap_ref_mean", np.nan),
+            "best_valid_probe_gap_ref_mean": np.nan if best_valid is None else best_valid.get("probe_gap_ref_mean", np.nan),
+            "best_valid_code_path": "" if best_valid is None else best_valid.get("code_path", ""),
+        })
+    out = pd.DataFrame(rows)
+    if len(out):
+        out = out.sort_values("best_selection_score", ascending=True, na_position="last")
+    return out
+
+
+def save_best_by_focus_family(attempts_df):
+    if not family_focus_is_enabled() or attempts_df is None or len(attempts_df) == 0:
+        return
+    summary = build_family_focus_summary(attempts_df)
+    if len(summary) == 0:
+        return
+    out_dir = os.path.join(ARTIFACT_DIR, "best_by_focus_family")
+    os.makedirs(out_dir, exist_ok=True)
+    summary.to_csv(os.path.join(ARTIFACT_DIR, "family_focus_summary.csv"), index=False)
+    for _, row in summary.iterrows():
+        src = row.get("best_valid_code_path") or row.get("best_code_path")
+        if _is_valid_path_value(src) and os.path.exists(src):
+            safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(row.get("focus_family_id", "family")))
+            dst = os.path.join(out_dir, f"{safe}_iter_{int(row.get('best_iteration', -1)):03d}.py")
+            try:
+                shutil.copyfile(src, dst)
+            except Exception:
+                pass
+
+
+def build_prompt(iteration, attempts_df, family_focus=None):
     parent, reason = select_parent(attempts_df)
     _build_clustering_prompt, _ = _prompt_module_helpers()
     historical_memory = historical_family_avoidance_block(OBJECTIVE_MODE)
@@ -1602,6 +1707,7 @@ def build_prompt(iteration, attempts_df):
             config=CFG,
             prompt_mode="initial",
             historical_memory=historical_memory,
+            family_focus=family_focus,
         )
         return [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}], None, reason
 
@@ -1667,6 +1773,7 @@ def build_prompt(iteration, attempts_df):
         parent_summary=parent_summary,
         parent_timed_out=parent_timed_out,
         historical_memory=historical_memory,
+        family_focus=family_focus,
     )
     return [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}], parent, reason
 
@@ -1930,11 +2037,29 @@ probe_detail_frames = []
 seen_hashes = set()
 
 attempts_df = pd.DataFrame()
+family_attempt_rows = {}
+family_schedule = build_family_focus_schedule()
+total_calls = len(family_schedule)
 
-for iteration in range(1, int(CFG["max_total_attempts"]) + 1):
+for item in family_schedule:
+    iteration = int(item["iteration"])
+    family_focus = item.get("family_focus")
+    if family_focus is not None:
+        focus_id = str(family_focus.get("id", ""))
+        local_attempts_df = pd.DataFrame(family_attempt_rows.get(focus_id, []))
+    else:
+        focus_id = ""
+        local_attempts_df = attempts_df
+
     print("\n" + "=" * 90)
-    print(f"[LLM call {iteration}/{CFG['max_total_attempts']}] objective={OBJECTIVE_MODE} constraint={CENTER_CONSTRAINT}")
-    messages, parent, parent_reason = build_prompt(iteration, attempts_df)
+    print(f"[LLM call {iteration}/{total_calls}] objective={OBJECTIVE_MODE} constraint={CENTER_CONSTRAINT}")
+    if family_focus is not None:
+        print(
+            "  family-focus:",
+            f"{family_focus.get('id')} ({family_focus.get('name')})",
+            f"call {family_focus.get('call_inside_family')}/{family_focus.get('calls_per_family')}",
+        )
+    messages, parent, parent_reason = build_prompt(iteration, local_attempts_df, family_focus=family_focus)
 
     prompt_path = os.path.join(ARTIFACT_DIR, "prompts", f"prompt_iter_{iteration:03d}.txt")
     with open(prompt_path, "w", encoding="utf-8") as f:
@@ -1950,6 +2075,24 @@ for iteration in range(1, int(CFG["max_total_attempts"]) + 1):
         "valid": False,
         "error": "",
     }
+    if family_focus is not None:
+        row.update({
+            "focus_family_id": family_focus.get("id", ""),
+            "focus_family_name": family_focus.get("name", ""),
+            "focus_family_index": family_focus.get("family_index", None),
+            "focus_total_families": family_focus.get("total_families", None),
+            "focus_call_inside_family": family_focus.get("call_inside_family", None),
+            "focus_calls_per_family": family_focus.get("calls_per_family", None),
+        })
+    else:
+        row.update({
+            "focus_family_id": "",
+            "focus_family_name": "",
+            "focus_family_index": np.nan,
+            "focus_total_families": np.nan,
+            "focus_call_inside_family": np.nan,
+            "focus_calls_per_family": np.nan,
+        })
 
     try:
         raw = call_llm(messages)
@@ -2053,11 +2196,17 @@ for iteration in range(1, int(CFG["max_total_attempts"]) + 1):
         print("  failed:", row["error"][:500])
 
     attempt_rows.append(row)
+    if family_focus is not None:
+        family_attempt_rows.setdefault(str(family_focus.get("id", "")), []).append(row)
+
     attempts_df = pd.DataFrame(attempt_rows)
     attempts_df.to_csv(os.path.join(ARTIFACT_DIR, "llm_attempts.csv"), index=False)
     family_summary_df = build_family_summary(attempts_df)
     if len(family_summary_df):
         family_summary_df.to_csv(os.path.join(ARTIFACT_DIR, "llm_family_summary.csv"), index=False)
+
+    if family_focus_is_enabled():
+        save_best_by_focus_family(attempts_df)
 
     if search_detail_frames:
         pd.concat(search_detail_frames, ignore_index=True).to_csv(

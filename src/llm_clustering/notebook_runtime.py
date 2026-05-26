@@ -92,11 +92,32 @@ def build_runtime_config_from_notebook_globals(
     # Main objective and run size.
     cfg["objective_mode"] = OBJECTIVE_BY_RUN[run]
     cfg["center_constraint"] = CENTER_CONSTRAINT_BY_RUN[run]
-    cfg["max_total_attempts"] = (
-        1
-        if smoke_test
-        else int(_first_available(notebook_globals, "MAX_LLM_CALLS", "MAX_TOTAL_ATTEMPTS"))
-    )
+
+    # Family-focus / island exploitation mode.
+    # When enabled, the effective run size is calls_per_family × enabled families,
+    # matching the TSP repo design. Smoke tests still force one call.
+    family_focus_mode = bool(notebook_globals.get("FAMILY_FOCUS_MODE", False))
+    family_focus_calls_per_family = int(notebook_globals.get("FAMILY_FOCUS_CALLS_PER_FAMILY", 20))
+    family_focus_plan = notebook_globals.get("FAMILY_FOCUS_PLAN", None)
+    if family_focus_plan is None:
+        family_focus_plans = notebook_globals.get("FAMILY_FOCUS_PLANS", {}) or {}
+        family_focus_plan = family_focus_plans.get(run, [])
+    family_focus_plan = list(family_focus_plan or [])
+    enabled_family_count = sum(1 for f in family_focus_plan if bool(f.get("enabled", True)))
+
+    if smoke_test:
+        cfg["max_total_attempts"] = 1
+    elif family_focus_mode:
+        if enabled_family_count <= 0:
+            raise ValueError("FAMILY_FOCUS_MODE=True but no enabled families were found for this RUN.")
+        cfg["max_total_attempts"] = enabled_family_count * family_focus_calls_per_family
+    else:
+        cfg["max_total_attempts"] = int(_first_available(notebook_globals, "MAX_LLM_CALLS", "MAX_TOTAL_ATTEMPTS"))
+
+    cfg["family_focus_mode"] = family_focus_mode
+    cfg["family_focus_calls_per_family"] = family_focus_calls_per_family
+    cfg["family_focus_plan"] = family_focus_plan
+    cfg["family_focus_enabled_count"] = int(enabled_family_count)
 
     # LLM/provider settings.
     cfg["provider"] = str(_first_available(notebook_globals, "LLM_PROVIDER", "PROVIDER"))
@@ -203,6 +224,9 @@ def build_runtime_config_from_notebook_globals(
         "top_p": cfg["top_p"],
         "selection_strategy": cfg["selection_strategy"],
         "historical_family_avoidance": cfg.get("historical_family_avoidance", False),
+        "family_focus_mode": cfg.get("family_focus_mode", False),
+        "family_focus_calls_per_family": cfg.get("family_focus_calls_per_family", 20),
+        "family_focus_enabled_count": cfg.get("family_focus_enabled_count", 0),
         "sampling_mode": cfg.get("sampling_mode", False),
         "sampling_max_xp": cfg.get("sampling_max_xp", 10),
         "sampling_mode_label": cfg.get("sampling_mode_label", "off"),
