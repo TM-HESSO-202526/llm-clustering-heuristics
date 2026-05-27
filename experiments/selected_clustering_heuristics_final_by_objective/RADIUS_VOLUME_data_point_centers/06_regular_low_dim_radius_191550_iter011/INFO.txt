@@ -1,0 +1,29 @@
+Run C regular low-dimensional radius-covering iter11
+
+Objective folder: RADIUS_VOLUME_data_point_centers
+Folder: 06_regular_low_dim_radius_191550_iter011
+Reason selected: Regular-mode lower-dimensional radius-covering candidate; useful to contrast d=2/d=3 behavior with d=4 difficulty.
+
+Run id: llm_clustering_unified_ABC_radius_20260517_191550
+Iteration: 11
+Algorithm name: EnhancedRadiusVolumeCoveringHeuristicWithImprovedCenterReplacementAndAdaptiveRadiusControl
+Objective: radius
+Center constraint: snap_to_points
+Inferred family: radius_covering
+Focus family: 
+
+Search gap reference mean pct: 19.011318198967963
+Probe gap reference mean pct: 34.16405804969611
+Selection score: 36.09334722381602
+Validity: 3/3
+Probe valid: True
+Search runtime mean seconds: 8.321473201115927
+Probe runtime mean seconds: 21.30855472882589
+
+Mechanism assigned: radius-volume covering with center replacement and adaptive radius control
+Features: radius_covering|regular_mode|lower_dim
+
+Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260517_191550/codes/iter_011_8f031a2256dc2465bf8b.py
+Copied code file: iter_011_8f031a2256dc2465bf8b.py
+Copied detail files: search_detail_iter_011.csv, probe_detail_iter_011.csv
+Code SHA1: 728195817da37c710051f7bb6d5bb7f38dcf7b4a

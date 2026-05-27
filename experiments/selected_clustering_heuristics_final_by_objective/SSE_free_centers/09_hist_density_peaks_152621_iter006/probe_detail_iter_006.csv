@@ -1,0 +1,13 @@
+candidate_id,split,instance,n,p,d,instance_id,ref_cost,valid,error,runtime_s,cost,gap_ref_pct,sse,dist_sum,radius_power_cost,max_radius,nonempty_clusters,center_count,sampling_mode,sampling_mode_label,sampling_sample_size,sampling_max_xp,sampling_repair_full,run_c_d1_sampling_mode,run_c_d1_mode_label,run_c_d1_sample_size,run_c_d1_max_xp,run_c_d1_repair_full
+6,probe,cluster_tai10000_100_2_1,10000,100,2,1,1984222.989216,False,"WallClockTimeout: candidate 6 on cluster_tai10000_100_2_1 exceeded 60.0s
+Traceback (most recent call last):
+  File ""/content/llm-clustering-heuristics/scripts/run_unified_pipeline.py"", line 1841, in evaluate_generated_code_on_df
+    centers = algo(X.copy(), p, rng)
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File ""<string>"", line 23, in __call__
+  File ""/content/llm-clustering-heuristics/scripts/run_unified_pipeline.py"", line 1151, in _handler
+    raise WallClockTimeout(f""{label} exceeded {seconds:.1f}s"")
+WallClockTimeout: candidate 6 on cluster_tai10000_100_2_1 exceeded 60.0s
+",60.05167484283447,,,,,,,,,,,,,,,,,,
+6,probe,cluster_tai01600_040_3_1,1600,40,3,1,330077.026518,True,,2.2435083389282227,424448.6523080581,28.590788879065407,424448.6523080581,24156.19233067439,,,,40.0,False,off,,10.0,False,False,not_run_c,,10.0,False
+6,probe,cluster_tai04900_070_4_1,4900,70,4,1,1360096.142597,True,,16.695290565490723,1473011.379106004,8.302004025494908,1473011.379106004,80145.8873586867,,,,70.0,False,off,,10.0,False,False,not_run_c,,10.0,False

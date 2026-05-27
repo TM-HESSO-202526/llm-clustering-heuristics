@@ -1,0 +1,29 @@
+Run A FF density-grid iter31
+
+Objective folder: SSE_free_centers
+Folder: 06_family_focus_density_grid_iter031
+Reason selected: Best Run A family-focus density-grid/local-density candidate; strong search/probe behavior and fast runtime.
+
+Run id: llm_clustering_unified_ABC_sse_20260526_142908
+Iteration: 31
+Algorithm name: AdaptiveDensityGridLocalDensityClusteringRefinedV4
+Objective: sse
+Center constraint: free
+Inferred family: density_grid
+Focus family: density_grid_local_density
+
+Search gap reference mean pct: 8.777455151029299
+Probe gap reference mean pct: 10.290153500950987
+Selection score: 19.067608651980287
+Validity: 3/3
+Probe valid: True
+Search runtime mean seconds: 0.1889506181081136
+Probe runtime mean seconds: 0.6777762571970621
+
+Mechanism assigned: density-grid/local-density initialization followed by bounded SSE-compatible refinement
+Features: density_grid|family_focus|lloyd_refinement
+
+Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260526_142908/codes/iter_031_c3bc5e9006544bf79253.py
+Copied code file: iter_031_c3bc5e9006544bf79253.py
+Copied detail files: search_detail_iter_031.csv, probe_detail_iter_031.csv
+Code SHA1: a21ec88885f6fadd065159ae868efce167c5bab9

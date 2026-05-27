@@ -1,0 +1,29 @@
+Run B FF spread/farthest-medoid control iter55
+
+Objective folder: P_MEDIAN_data_point_centers
+Folder: 07_family_focus_spread_control_iter055
+Reason selected: Weak but useful family-focus control for spread/farthest-medoid construction.
+
+Run id: llm_clustering_unified_ABC_pmedian_20260526_150920
+Iteration: 55
+Algorithm name: spread_farthest_medoid_control_15
+Objective: pmedian
+Center constraint: snap_to_points
+Inferred family: radius_covering
+Focus family: spread_farthest_medoid_control
+
+Search gap reference mean pct: 30.34131992301737
+Probe gap reference mean pct: 32.52289347976851
+Selection score: 62.86421340278588
+Validity: 3/3
+Probe valid: True
+Search runtime mean seconds: 4.133823156356812
+Probe runtime mean seconds: 12.548744201660156
+
+Mechanism assigned: spread/farthest-medoid selected-point construction control
+Features: spread_control|farthest_medoid|family_focus
+
+Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_pmedian_20260526_150920/codes/iter_055_72231509bdc1d7efdfee.py
+Copied code file: iter_055_72231509bdc1d7efdfee.py
+Copied detail files: search_detail_iter_055.csv, probe_detail_iter_055.csv
+Code SHA1: e28c3737f2d9fbfb0339c95f0e511e1849da3d1e
