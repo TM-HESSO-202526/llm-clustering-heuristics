@@ -126,8 +126,6 @@ TIMEOUT_S=$TIMEOUT_S \
 bash server_eval/run_smoke_clustering.sh
 
 echo "LATEST_RESULT_DIR=`$(ls -td /home/$AAI_USERNAME/workspace/TM/final-results/clustering_smoke/* | head -1)"
-echo '=== Latest remote result folders ==='
-ls -td /home/$AAI_USERNAME/workspace/TM/final-results/clustering_smoke/* | head -5
 "@
 
 $remoteOutput = $remoteCommands | ssh $REMOTE "bash -s"
