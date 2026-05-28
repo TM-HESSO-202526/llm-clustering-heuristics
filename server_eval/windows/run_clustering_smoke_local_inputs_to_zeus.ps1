@@ -37,10 +37,9 @@ if (($OBJECTIVE -eq "pmedian" -or $OBJECTIVE -eq "sse") -and !(Test-Path $LOCAL_
     Write-Host "ERROR: Missing $LOCAL_KMEANS_RES"
     exit 1
 }
-if (($OBJECTIVE -eq "radius") -and !(Test-Path $LOCAL_RADIUS_ZIP)) {
-    Write-Host "ERROR: Missing $LOCAL_RADIUS_ZIP"
-    exit 1
-}
+# For Run C/radius, the current LLM loop uses generator-last-p references
+# derived from cluster_tai.zip. The sphere/free_and_snap zip is uploaded if
+# present, but it is not required for same-reference final evaluation.
 
 Write-Host "=== Creating remote folders on $REMOTE ==="
 ssh $REMOTE "mkdir -p ~/workspace/TM ~/data-local/TM/input ~/workspace/TM/final-results"
@@ -53,8 +52,11 @@ if (Test-Path $LOCAL_RADIUS_ZIP) {
 }
 
 # Pick the correct reference file on the server.
+# SSE/p-median use kmeans.res, exactly as the LLM loop.
+# Run C/radius uses the same generator-last-p fallback as the LLM loop, so no
+# external reference file is passed by default.
 if ($OBJECTIVE -eq "radius") {
-    $REMOTE_REFERENCE_FILE = "~/data-local/TM/input/sphere_radius_baselines_free_and_snap_20260506_144622.zip"
+    $REMOTE_REFERENCE_FILE = ""
 } else {
     $REMOTE_REFERENCE_FILE = "~/data-local/TM/input/kmeans.res"
 }

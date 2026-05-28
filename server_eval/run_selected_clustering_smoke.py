@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import glob
 import hashlib
 import importlib.util
 import json
@@ -224,7 +225,13 @@ def batched_nearest_indices(X: np.ndarray, C: np.ndarray, batch_size: int) -> Tu
     return labels, best_sq
 
 
-def snap_centers_to_points(X: np.ndarray, C: np.ndarray, batch_size: int) -> np.ndarray:
+def snap_centers_to_points(X: np.ndarray, C: np.ndarray, batch_size: int, rng: np.random.Generator, p: int) -> np.ndarray:
+    """Snap centers to nearest input points and repair duplicate snapped centers.
+
+    This mirrors scripts/run_unified_pipeline.py: after snapping, duplicate centers
+    are removed and missing centers are filled with farthest points from the
+    current snapped set.
+    """
     idx = []
     for c in C:
         # one center versus all points; use chunks to avoid huge temporary memory.
@@ -239,7 +246,35 @@ def snap_centers_to_points(X: np.ndarray, C: np.ndarray, batch_size: int) -> np.
                 best_v = v
                 best_i = start + j
         idx.append(best_i)
-    return X[np.asarray(idx, dtype=np.int64)].copy()
+
+    snapped = X[np.asarray(idx, dtype=np.int64)].copy()
+
+    # Same duplicate repair logic as the LLM loop.
+    unique_rows = []
+    seen = set()
+    for row in snapped:
+        key = tuple(np.round(row, 12))
+        if key not in seen:
+            unique_rows.append(row)
+            seen.add(key)
+    snapped = np.asarray(unique_rows, dtype=float) if unique_rows else np.empty((0, X.shape[1]))
+
+    while len(snapped) < p:
+        if len(snapped) == 0:
+            snapped = X[[int(rng.integers(0, X.shape[0]))]].copy()
+            continue
+        labels, best_sq = batched_nearest_indices(X, snapped, batch_size=batch_size)
+        idx_far = int(np.argmax(best_sq))
+        candidate = X[idx_far]
+        key = tuple(np.round(candidate, 12))
+        if key not in seen:
+            snapped = np.vstack([snapped, candidate])
+            seen.add(key)
+        else:
+            idx_rand = int(rng.integers(0, X.shape[0]))
+            snapped = np.vstack([snapped, X[idx_rand]])
+
+    return snapped[:p].copy()
 
 
 def normalize_centers(raw: Any, X: np.ndarray, p: int, rng: np.random.Generator, objective: str, batch_size: int) -> Tuple[np.ndarray, bool, str]:
@@ -272,7 +307,7 @@ def normalize_centers(raw: Any, X: np.ndarray, p: int, rng: np.random.Generator,
         note += "filled_missing_centers;"
 
     if objective in {"pmedian", "radius"}:
-        C = snap_centers_to_points(X, C, batch_size=batch_size)
+        C = snap_centers_to_points(X, C, batch_size=batch_size, rng=rng, p=p)
         note += "snapped_to_points;"
 
     return C.astype(float, copy=False), repaired, note
@@ -300,51 +335,245 @@ def generator_last_p_reference(X: np.ndarray, p: int, objective: str, batch_size
     return objective_value(X, C, objective=objective, batch_size=batch_size)
 
 
-def load_reference_table(path: Optional[Path]) -> pd.DataFrame:
+def value_after_label(line: str, label_pattern: str) -> Optional[float]:
+    """Extract the first numeric value immediately after a label.
+
+    Copied from scripts/run_unified_pipeline.py so kmeans.res is parsed exactly
+    like the LLM-loop evaluator.
+    """
+    m = re.search(label_pattern + r"\s*[:=]?\s*(" + NUMBER_RE + r")", line, flags=re.IGNORECASE)
+    if not m:
+        return None
+    return float(m.group(1))
+
+
+def parse_kmeans_res(res_path: Path) -> pd.DataFrame:
+    """Parse kmeans.res exactly like scripts/run_unified_pipeline.py.
+
+    Run A / SSE reference    = min(best cost)
+    Run B / p-median ref     = min(cost pmed)
+    cost_pmed2 is kept as metadata but is not used for the p-median gap.
+    """
+    if res_path is None or not Path(res_path).exists():
+        raise FileNotFoundError(f"kmeans.res not found: {res_path}")
+
+    rows = []
+    current_name = None
+    current: Dict[str, List[float]] = {}
+
+    def flush() -> None:
+        nonlocal current_name, current, rows
+        if current_name and current:
+            row: Dict[str, Any] = {"instance": current_name}
+            row.update(current)
+            rows.append(row)
+        current = {}
+
+    with Path(res_path).open("r", encoding="utf-8", errors="ignore") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line:
+                continue
+
+            m = INSTANCE_RE.search(line)
+            if m:
+                new_name = m.group(0)
+                if current_name is not None and new_name != current_name:
+                    flush()
+                current_name = new_name
+
+            if current_name is None:
+                continue
+
+            best = value_after_label(line, r"\bbest\s+cost\b")
+            if best is not None:
+                current.setdefault("best_costs", []).append(best)
+
+            current_cost = value_after_label(line, r"\bcurrent\s+cost\b")
+            if current_cost is not None:
+                current.setdefault("current_costs", []).append(current_cost)
+
+            # pmed2 must be checked before pmed.
+            pmed2 = value_after_label(line, r"\bcost[_\s-]*pmed2\b")
+            if pmed2 is not None:
+                current.setdefault("pmed2_costs", []).append(pmed2)
+
+            pmed = value_after_label(line, r"\bcost[_\s-]*pmed\b(?!2)")
+            if pmed is not None:
+                current.setdefault("pmed_costs", []).append(pmed)
+
+    flush()
+
+    parsed = []
+    for row in rows:
+        best = row.get("best_costs", [])
+        if not best:
+            continue
+        out = {
+            "instance": row["instance"],
+            "ref_sse": float(np.nanmin(best)),
+            "kmeans_best_cost_min": float(np.nanmin(best)),
+            "kmeans_best_cost_n": int(len(best)),
+        }
+        pmed = row.get("pmed_costs", [])
+        pmed2 = row.get("pmed2_costs", [])
+        current = row.get("current_costs", [])
+        out["ref_pmedian"] = float(np.nanmin(pmed)) if pmed else np.nan
+        out["pmed_dist_min"] = out["ref_pmedian"]
+        out["pmed_dist_n"] = int(len(pmed))
+        out["pmed2_sse_min"] = float(np.nanmin(pmed2)) if pmed2 else np.nan
+        out["pmed2_sse_n"] = int(len(pmed2))
+        out["kmeans_current_cost_min"] = float(np.nanmin(current)) if current else np.nan
+        out["kmeans_current_cost_n"] = int(len(current))
+        parsed.append(out)
+
+    df = pd.DataFrame(parsed).drop_duplicates("instance", keep="first")
+    if df.empty:
+        raise RuntimeError("No references parsed from kmeans.res")
+    return df
+
+
+def _extract_reference_zip(path_or_zip: Path, extract_dir: Optional[Path] = None) -> Path:
+    if path_or_zip.suffix.lower() != ".zip":
+        return path_or_zip.parent
+    if extract_dir is None:
+        extract_dir = path_or_zip.parent / (path_or_zip.stem + "__extracted")
+    extract_dir.mkdir(parents=True, exist_ok=True)
+    marker = extract_dir / ".extracted_from.txt"
+    signature = f"{path_or_zip.resolve()}::{path_or_zip.stat().st_size}::{int(path_or_zip.stat().st_mtime)}"
+    if marker.exists() and marker.read_text(encoding="utf-8", errors="ignore") == signature:
+        return extract_dir
+    for old in extract_dir.glob("**/*.csv"):
+        try:
+            old.unlink()
+        except Exception:
+            pass
+    with zipfile.ZipFile(path_or_zip, "r") as z:
+        z.extractall(extract_dir)
+    marker.write_text(signature, encoding="utf-8")
+    return extract_dir
+
+
+def load_radius_reference(path_or_zip: Path, center_constraint: str) -> pd.DataFrame:
+    """Load Run C references with the same file priority and center-mode filtering
+    as scripts/run_unified_pipeline.py.
+    """
+    if path_or_zip is None or not Path(path_or_zip).exists():
+        raise FileNotFoundError(f"Missing radius reference path: {path_or_zip}")
+
+    path_or_zip = Path(path_or_zip)
+    root = _extract_reference_zip(path_or_zip) if path_or_zip.suffix.lower() == ".zip" else path_or_zip.parent
+
+    wanted = [
+        # Current Run C reference in the LLM loop.
+        "radius_volume_reference_generator_last_p.csv",
+        "radius_volume_reference_C1_generator_last_p.csv",
+        # Older optional references produced from Prof. Taillard's hypersphere-volume code.
+        "radius_volume_reference_taillard_best_by_instance.csv",
+        "radius_volume_reference_taillard_hybrid.csv",
+        # Backward-compatible names from older handcrafted/free-center reference builders.
+        "radius_volume_reference_C1_free_centers.csv",
+        "radius_volume_reference_by_center_mode_best_by_instance.csv",
+        "radius_volume_reference_best_by_instance_all_modes.csv",
+    ]
+
+    candidates: List[Path] = []
+    for name in wanted:
+        candidates.extend(Path(p) for p in glob.glob(str(root / "**" / name), recursive=True))
+
+    if not candidates and path_or_zip.suffix.lower() == ".csv":
+        candidates = [path_or_zip]
+
+    if not candidates:
+        available = [str(p) for p in root.glob("**/*.csv")]
+        raise FileNotFoundError(f"Could not find a Run C radius reference CSV. Available CSVs={available}")
+
+    csv_path = sorted(candidates)[0]
+    df = pd.read_csv(csv_path)
+
+    if "center_mode" in df.columns:
+        cm = df["center_mode"].astype(str).str.lower()
+        if center_constraint == "snap_to_points":
+            allowed = [
+                "snap_to_points", "medoid", "medoids", "data_point", "data_points",
+                "generator_last_p", "generator_last_p_centers", "last_p", "last_p_medoids",
+            ]
+        else:
+            allowed = ["free", "c1_free", "free_centers"]
+        df = df[cm.isin(allowed)].copy()
+
+    possible_ref_cols = [
+        "ref_radius_power_cost",
+        "best_radius_power_cost",
+        "radius_power_cost",
+        "best_cost",
+    ]
+    ref_col = next((c for c in possible_ref_cols if c in df.columns), None)
+    if ref_col is None:
+        raise ValueError(f"No radius reference cost column found in {csv_path}. Columns={list(df.columns)}")
+
+    df = df.rename(columns={ref_col: "ref_radius_power_cost"})
+    if "instance" not in df.columns:
+        raise ValueError("Radius reference CSV must contain an 'instance' column.")
+
+    print(f"Loaded radius reference: {csv_path}")
+    print(f"Rows after center-mode filtering: {len(df)}")
+    return df[["instance", "ref_radius_power_cost"] + [c for c in df.columns if c not in {"instance", "ref_radius_power_cost"}]].drop_duplicates("instance")
+
+
+def load_reference_table(path: Optional[Path], objective: str, center_constraint: str) -> pd.DataFrame:
+    """Load the same reference source/type as the LLM-loop evaluator."""
     if path is None:
-        return pd.DataFrame()
-    if not path.exists():
-        raise FileNotFoundError(f"Reference table does not exist: {path}")
-    if path.suffix.lower() == ".zip":
-        frames = []
-        with zipfile.ZipFile(path, "r") as z:
-            for name in z.namelist():
-                if name.lower().endswith(".csv"):
-                    with z.open(name) as f:
-                        frames.append(pd.read_csv(f))
-        return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
-    return pd.read_csv(path)
+        if objective == "radius":
+            # This matches scripts/run_unified_pipeline.py when the configured
+            # generator-last-p reference zip is missing: the reference is built
+            # from the p last points of each cluster_tai instance.
+            return pd.DataFrame()
+        raise FileNotFoundError(
+            "A reference file is required for final selected-heuristic evaluation. "
+            "Pass kmeans.res for sse/pmedian. Run C/radius can omit this to use the "
+            "same generator-last-p fallback as the LLM loop."
+        )
+    path = Path(path)
+    if objective in {"sse", "pmedian"}:
+        if path.suffix.lower() == ".res" or path.name.lower() == "kmeans.res":
+            return parse_kmeans_res(path)
+        # Allow pre-parsed CSVs only if explicitly provided.
+        df = pd.read_csv(path)
+        if "instance" not in df.columns:
+            raise ValueError(f"Reference CSV must contain an instance column: {path}")
+        return df
+    if objective == "radius":
+        return load_radius_reference(path, center_constraint=center_constraint)
+    raise ValueError(objective)
 
 
 def reference_from_table(ref_df: pd.DataFrame, instance_name: str, objective: str) -> Optional[float]:
     if ref_df.empty:
         return None
-    candidates = ref_df.copy()
-    name_cols = [c for c in candidates.columns if c.lower() in {"instance", "instance_name", "name"}]
-    if name_cols:
-        c = name_cols[0]
-        candidates = candidates[candidates[c].astype(str).str.contains(instance_name, regex=False, na=False)]
-    if candidates.empty:
+
+    if "instance" not in ref_df.columns:
+        raise ValueError("Reference table must contain an 'instance' column.")
+
+    exact = ref_df[ref_df["instance"].astype(str) == instance_name].copy()
+    if exact.empty:
+        # Backward-compatible fallback for references that include .csv or path fragments.
+        exact = ref_df[ref_df["instance"].astype(str).str.contains(instance_name, regex=False, na=False)].copy()
+    if exact.empty:
         return None
-    lower_cols = {c.lower(): c for c in candidates.columns}
+
     preferred_by_obj = {
-        "sse": ["sse", "ref_sse", "reference_sse", "cost", "objective_value", "value"],
-        "pmedian": ["pmedian", "p_median", "ref_pmedian", "reference_pmedian", "cost", "objective_value", "value"],
-        "radius": ["ref_radius_power_cost", "radius", "radius_volume", "cost", "objective_value", "value"],
+        "sse": ["ref_sse", "sse", "reference_sse", "cost", "objective_value", "value"],
+        "pmedian": ["ref_pmedian", "pmedian", "p_median", "reference_pmedian", "cost", "objective_value", "value"],
+        "radius": ["ref_radius_power_cost", "best_radius_power_cost", "radius_power_cost", "best_cost", "radius", "radius_volume", "cost", "objective_value", "value"],
     }[objective]
+
+    lower_cols = {c.lower(): c for c in exact.columns}
     for key in preferred_by_obj:
         if key in lower_cols:
-            val = pd.to_numeric(candidates[lower_cols[key]], errors="coerce").dropna()
-            if not val.empty:
-                return float(val.iloc[0])
-    # Fallback: first numeric column that is not metadata.
-    ignore = {"n", "p", "d", "instance_id", "rep", "seed"}
-    for col in candidates.columns:
-        if col.lower() in ignore:
-            continue
-        val = pd.to_numeric(candidates[col], errors="coerce").dropna()
-        if not val.empty:
-            return float(val.iloc[0])
+            vals = pd.to_numeric(exact[lower_cols[key]], errors="coerce").dropna()
+            if not vals.empty:
+                return float(vals.iloc[0])
     return None
 
 
@@ -493,7 +722,8 @@ def main() -> int:
         max_instances=args.max_instances,
     )
     heuristics = discover_heuristics(args.selected_root, args.objective, args.max_heuristics)
-    ref_df = load_reference_table(args.reference_csv_or_zip)
+    center_constraint = "free" if args.objective == "sse" else "snap_to_points"
+    ref_df = load_reference_table(args.reference_csv_or_zip, args.objective, center_constraint=center_constraint)
 
     print(f"Objective: {args.objective}")
     print(f"Heuristics: {len(heuristics)}")
@@ -567,7 +797,12 @@ def main() -> int:
                     val = objective_value(X, C, args.objective, args.distance_batch_size)
                     ref = reference_from_table(ref_df, inst.name, args.objective)
                     if ref is None:
-                        ref = generator_last_p_reference(X, inst.p, args.objective, args.distance_batch_size)
+                        if args.objective == "radius":
+                            # Same fallback as the LLM loop's generated Run C reference:
+                            # p last points are the generator/reference centers.
+                            ref = generator_last_p_reference(X, inst.p, args.objective, args.distance_batch_size)
+                        else:
+                            raise KeyError(f"Missing {args.objective} reference for instance {inst.name} in {args.reference_csv_or_zip}")
                     gap = 100.0 * (val - ref) / ref if ref and np.isfinite(ref) and ref != 0 else np.nan
                     row.update({
                         "objective_value": val,
