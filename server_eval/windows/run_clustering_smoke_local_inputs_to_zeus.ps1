@@ -13,17 +13,17 @@ $REPO_URL = "https://github.com/TM-HESSO-202526/llm-clustering-heuristics.git"
 $LOCAL_INPUT_DIR = "D:\Users\antho\TM\server_eval_inputs"
 $LOCAL_CLUSTER_ZIP = "$LOCAL_INPUT_DIR\cluster_tai.zip"
 $LOCAL_KMEANS_RES  = "$LOCAL_INPUT_DIR\kmeans.res"
-$LOCAL_RADIUS_ZIP  = "$LOCAL_INPUT_DIR\sphere_radius_baselines_free_and_snap_20260506_144622.zip"
+$LOCAL_RADIUS_ZIP  = "$LOCAL_INPUT_DIR\generator_radius_reference_last_p.zip"
 
 # Results copied back here on your PC.
 $LOCAL_RESULTS_DIR = "D:\Users\antho\TM\server_eval_results"
 
 # Smoke-test settings.
 # OBJECTIVE can be: pmedian, sse, radius
-$OBJECTIVE = "pmedian"
+$OBJECTIVE = "radius"
 $REPS = 2
-$MAX_HEURISTICS = 1
-$MAX_INSTANCES = 2
+$MAX_HEURISTICS = 4
+$MAX_INSTANCES = 10
 $TIMEOUT_S = 300
 
 $REMOTE = "$AAI_USERNAME@$SERVER_NAME.iict-heig-vd.in"
