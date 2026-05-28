@@ -31,7 +31,7 @@ $LOCAL_RESULTS_DIR = "D:\Users\antho\TM\server_eval_results"
 # OBJECTIVE can be: pmedian, sse, radius
 # ------------------------------
 $OBJECTIVE = "sse"
-$REPS = 2
+$REPS = 10
 $MAX_HEURISTICS = 1000
 $MAX_INSTANCES = 1000
 $TIMEOUT_S = 300
@@ -46,7 +46,7 @@ $TIMEOUT_S = 300
 #   $INSTANCE_IDS = "0,1,2,3,4"    # only these ids
 $P_VALUES = "ALL"
 $D_VALUES = "ALL"
-$INSTANCE_IDS = "ALL"
+$INSTANCE_IDS = "5"
 
 # ------------------------------
 # Remote paths
