@@ -8,8 +8,9 @@ OBJECTIVE="${OBJECTIVE:-pmedian}"
 REPS="${REPS:-2}"
 MAX_HEURISTICS="${MAX_HEURISTICS:-1}"
 MAX_INSTANCES="${MAX_INSTANCES:-2}"
-P_VALUES="${P_VALUES:-20,40}"
-D_VALUES="${D_VALUES:-2}"
+P_VALUES="${P_VALUES:-ALL}"
+D_VALUES="${D_VALUES:-ALL}"
+INSTANCE_IDS="${INSTANCE_IDS:-ALL}"
 CLUSTER_ZIP="${CLUSTER_ZIP:-data/raw/cluster_tai.zip}"
 REFERENCE_FILE="${REFERENCE_FILE:-}"
 SELECTED_ROOT="${SELECTED_ROOT:-experiments/selected_clustering_heuristics_final_by_objective}"
@@ -38,6 +39,7 @@ python server_eval/run_selected_clustering_smoke.py \
   --max-instances "$MAX_INSTANCES" \
   --p-values "$P_VALUES" \
   --d-values "$D_VALUES" \
+  --instance-ids "$INSTANCE_IDS" \
   --timeout-s "$TIMEOUT_S"
 
 echo

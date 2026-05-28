@@ -36,6 +36,18 @@ $MAX_HEURISTICS = 1000
 $MAX_INSTANCES = 1000
 $TIMEOUT_S = 300
 
+# Instance filters. Use "ALL" to load every available cluster_tai instance.
+# Examples:
+#   $P_VALUES = "ALL"              # all p values in cluster_tai.zip
+#   $P_VALUES = "20,40,70"         # only these p values
+#   $D_VALUES = "ALL"              # all dimensions in cluster_tai.zip
+#   $D_VALUES = "2"                # only d=2
+#   $INSTANCE_IDS = "ALL"          # all instance ids
+#   $INSTANCE_IDS = "0,1,2,3,4"    # only these ids
+$P_VALUES = "ALL"
+$D_VALUES = "ALL"
+$INSTANCE_IDS = "ALL"
+
 # ------------------------------
 # Remote paths
 # ------------------------------
@@ -94,6 +106,9 @@ Write-Host "Objective:       $OBJECTIVE"
 Write-Host "Repetitions:     $REPS"
 Write-Host "Max heuristics:  $MAX_HEURISTICS"
 Write-Host "Max instances:   $MAX_INSTANCES"
+Write-Host "P values:        $P_VALUES"
+Write-Host "D values:        $D_VALUES"
+Write-Host "Instance ids:    $INSTANCE_IDS"
 Write-Host "Reference file:  $REMOTE_REFERENCE_FILE"
 
 $remoteCommands = @"
@@ -122,6 +137,9 @@ OBJECTIVE=$OBJECTIVE \
 REPS=$REPS \
 MAX_HEURISTICS=$MAX_HEURISTICS \
 MAX_INSTANCES=$MAX_INSTANCES \
+P_VALUES=$P_VALUES \
+D_VALUES=$D_VALUES \
+INSTANCE_IDS=$INSTANCE_IDS \
 TIMEOUT_S=$TIMEOUT_S \
 bash server_eval/run_smoke_clustering.sh
 

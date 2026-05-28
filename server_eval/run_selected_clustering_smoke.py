@@ -693,9 +693,14 @@ def main() -> int:
     args = ap.parse_args()
 
     def parse_int_list(s: Optional[str]) -> Optional[List[int]]:
-        if not s:
+        if s is None:
             return None
-        return [int(x.strip()) for x in s.split(",") if x.strip()]
+        text = str(s).strip()
+        if not text:
+            return None
+        if text.lower() in {"all", "*", "none", "null", "any"}:
+            return None
+        return [int(x.strip()) for x in text.split(",") if x.strip()]
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     run_config = vars(args).copy()
