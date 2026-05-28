@@ -18,7 +18,7 @@ $REPO_URL = "https://github.com/TM-HESSO-202526/llm-clustering-heuristics.git"
 # ------------------------------
 # Private local input files on your PC
 # ------------------------------
-$LOCAL_INPUT_DIR  = "D:\Users\antho\TM\server_eval_inputs"
+$LOCAL_INPUT_DIR   = "D:\Users\antho\TM\server_eval_inputs"
 $LOCAL_CLUSTER_ZIP = "$LOCAL_INPUT_DIR\cluster_tai.zip"
 $LOCAL_KMEANS_RES  = "$LOCAL_INPUT_DIR\kmeans.res"
 $LOCAL_RADIUS_ZIP  = "$LOCAL_INPUT_DIR\generator_radius_reference_last_p.zip"
@@ -125,13 +125,10 @@ MAX_INSTANCES=$MAX_INSTANCES \
 TIMEOUT_S=$TIMEOUT_S \
 bash server_eval/run_smoke_clustering.sh
 
-LATEST_DIR=\ls -td /home/$AAI_USERNAME/workspace/TM/final-results/clustering_smoke/* | head -1\
-echo "LATEST_RESULT_DIR=\\$LATEST_DIR\"
+echo "LATEST_RESULT_DIR=`$(ls -td /home/$AAI_USERNAME/workspace/TM/final-results/clustering_smoke/* | head -1)"
 echo '=== Latest remote result folders ==='
 ls -td /home/$AAI_USERNAME/workspace/TM/final-results/clustering_smoke/* | head -5
 "@
-# The special placeholder char above avoids PowerShell expanding bash command substitution too early.
-$remoteCommands = $remoteCommands.Replace([char]1, '``')
 
 $remoteOutput = $remoteCommands | ssh $REMOTE "bash -s"
 $remoteExit = $LASTEXITCODE
