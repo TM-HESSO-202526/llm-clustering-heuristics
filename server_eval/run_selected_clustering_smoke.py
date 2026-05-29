@@ -582,16 +582,53 @@ def summarize(raw_df: pd.DataFrame, out_dir: Path) -> None:
     if ok.empty:
         pd.DataFrame().to_csv(out_dir / "summary_by_heuristic.csv", index=False)
         pd.DataFrame().to_csv(out_dir / "summary_by_instance_size.csv", index=False)
+        pd.DataFrame().to_csv(out_dir / "summary_by_heuristic_instance.csv", index=False)
         pd.DataFrame().to_csv(out_dir / "complexity_fit.csv", index=False)
         return
 
     def q(series, pct):
         return float(np.nanpercentile(series.astype(float), pct)) if len(series) else np.nan
 
+    def std(series):
+        vals = pd.to_numeric(series, errors="coerce").dropna()
+        return float(vals.std(ddof=1)) if len(vals) >= 2 else np.nan
+
+    # Direct stochasticity table: one row per heuristic × instance, with standard
+    # deviation computed across repetitions for that exact instance. This is the
+    # cleanest way to measure how stochastic a heuristic is without mixing
+    # different instance sizes or dimensions.
+    instance_rows = []
+    for keys, g in raw_df.groupby(["objective", "heuristic_id", "instance_name", "n", "p", "d", "instance_id"], dropna=False):
+        objective, heuristic_id, instance_name, n, p, d, instance_id = keys
+        gok = g[g["status"] == "ok"]
+        instance_rows.append({
+            "objective": objective,
+            "heuristic_id": heuristic_id,
+            "instance_name": instance_name,
+            "n": n,
+            "p": p,
+            "d": d,
+            "instance_id": instance_id,
+            "num_rows": len(g),
+            "num_ok": len(gok),
+            "success_rate": len(gok) / max(1, len(g)),
+            "gap_mean": float(pd.to_numeric(gok["gap_ref_pct"], errors="coerce").mean()) if len(gok) else np.nan,
+            "gap_std_reps": std(gok["gap_ref_pct"]),
+            "gap_median": q(gok["gap_ref_pct"].dropna(), 50),
+            "gap_p10": q(gok["gap_ref_pct"].dropna(), 10),
+            "runtime_mean_s": float(pd.to_numeric(gok["runtime_s"], errors="coerce").mean()) if len(gok) else np.nan,
+            "runtime_std_reps_s": std(gok["runtime_s"]),
+            "runtime_median_s": q(gok["runtime_s"].dropna(), 50),
+            "runtime_p90_s": q(gok["runtime_s"].dropna(), 90),
+        })
+    inst_df = pd.DataFrame(instance_rows).sort_values(["objective", "heuristic_id", "d", "p", "instance_id", "n"])
+    inst_df.to_csv(out_dir / "summary_by_heuristic_instance.csv", index=False)
+
     groups = []
     for keys, g in raw_df.groupby(["objective", "heuristic_id"], dropna=False):
         objective, heuristic_id = keys
         gok = g[g["status"] == "ok"]
+        inst_g = inst_df[(inst_df["objective"] == objective) & (inst_df["heuristic_id"] == heuristic_id)]
         row = {
             "objective": objective,
             "heuristic_id": heuristic_id,
@@ -599,6 +636,18 @@ def summarize(raw_df: pd.DataFrame, out_dir: Path) -> None:
             "num_ok": len(gok),
             "success_rate": len(gok) / max(1, len(g)),
             "timeout_rate": float((g["status"] == "timeout").mean()),
+            # Global std mixes instance difficulty and stochasticity; useful as a
+            # dispersion indicator, but not a pure stochasticity metric.
+            "gap_std_global": std(gok["gap_ref_pct"]),
+            "runtime_std_global_s": std(gok["runtime_s"]),
+            # These aggregate the per-instance std across repetitions, so they are
+            # better measures of stochasticity.
+            "gap_rep_std_mean": float(pd.to_numeric(inst_g["gap_std_reps"], errors="coerce").mean()) if len(inst_g) else np.nan,
+            "gap_rep_std_median": q(inst_g["gap_std_reps"].dropna(), 50),
+            "gap_rep_std_p90": q(inst_g["gap_std_reps"].dropna(), 90),
+            "runtime_rep_std_mean_s": float(pd.to_numeric(inst_g["runtime_std_reps_s"], errors="coerce").mean()) if len(inst_g) else np.nan,
+            "runtime_rep_std_median_s": q(inst_g["runtime_std_reps_s"].dropna(), 50),
+            "runtime_rep_std_p90_s": q(inst_g["runtime_std_reps_s"].dropna(), 90),
         }
         for pct in [1, 2, 5, 10, 50, 75, 90]:
             row[f"gap_p{pct:02d}" if pct < 50 else ("gap_median" if pct == 50 else f"gap_p{pct}")] = q(gok["gap_ref_pct"].dropna(), pct)
@@ -621,8 +670,10 @@ def summarize(raw_df: pd.DataFrame, out_dir: Path) -> None:
             "success_rate": len(gok) / max(1, len(g)),
             "gap_median": q(gok["gap_ref_pct"].dropna(), 50),
             "gap_p10": q(gok["gap_ref_pct"].dropna(), 10),
+            "gap_std": std(gok["gap_ref_pct"]),
             "runtime_median_s": q(gok["runtime_s"].dropna(), 50),
             "runtime_p90_s": q(gok["runtime_s"].dropna(), 90),
+            "runtime_std_s": std(gok["runtime_s"]),
         })
     size_df = pd.DataFrame(size_rows).sort_values(["objective", "heuristic_id", "d", "p", "n"])
     size_df.to_csv(out_dir / "summary_by_instance_size.csv", index=False)
@@ -835,7 +886,7 @@ def main() -> int:
     summarize(raw_df, args.output_dir)
     print("\nDone.")
     print("Wrote:")
-    for name in ["raw_results.csv", "summary_by_heuristic.csv", "summary_by_instance_size.csv", "complexity_fit.csv", "run_config.json"]:
+    for name in ["raw_results.csv", "summary_by_heuristic.csv", "summary_by_instance_size.csv", "summary_by_heuristic_instance.csv", "complexity_fit.csv", "run_config.json"]:
         print(" -", args.output_dir / name)
     return 0
 

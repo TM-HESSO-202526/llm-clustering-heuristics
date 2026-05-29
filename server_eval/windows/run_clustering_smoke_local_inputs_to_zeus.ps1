@@ -30,7 +30,7 @@ $LOCAL_RESULTS_DIR = "D:\Users\antho\TM\server_eval_results"
 # Run settings
 # OBJECTIVE can be: pmedian, sse, radius
 # ------------------------------
-$OBJECTIVE = "sse"
+$OBJECTIVE = "pmedian"
 $REPS = 10
 $MAX_HEURISTICS = 1000
 $MAX_INSTANCES = 1000
