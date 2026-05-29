@@ -645,9 +645,21 @@ def summarize(raw_df: pd.DataFrame, out_dir: Path) -> None:
             "gap_rep_std_mean": float(pd.to_numeric(inst_g["gap_std_reps"], errors="coerce").mean()) if len(inst_g) else np.nan,
             "gap_rep_std_median": q(inst_g["gap_std_reps"].dropna(), 50),
             "gap_rep_std_p90": q(inst_g["gap_std_reps"].dropna(), 90),
+            # Cross-instance robustness: dispersion of each instance's median gap.
+            # This is different from gap_rep_std_*: it measures whether a heuristic
+            # is consistently good across instance families/sizes/dimensions.
+            "gap_instance_median_mean": float(pd.to_numeric(inst_g["gap_median"], errors="coerce").mean()) if len(inst_g) else np.nan,
+            "gap_instance_median_std": std(inst_g["gap_median"]),
+            "gap_instance_median_p10": q(inst_g["gap_median"].dropna(), 10),
+            "gap_instance_median_p90": q(inst_g["gap_median"].dropna(), 90),
+            "gap_instance_median_iqr": q(inst_g["gap_median"].dropna(), 75) - q(inst_g["gap_median"].dropna(), 25) if len(inst_g["gap_median"].dropna()) else np.nan,
             "runtime_rep_std_mean_s": float(pd.to_numeric(inst_g["runtime_std_reps_s"], errors="coerce").mean()) if len(inst_g) else np.nan,
             "runtime_rep_std_median_s": q(inst_g["runtime_std_reps_s"].dropna(), 50),
             "runtime_rep_std_p90_s": q(inst_g["runtime_std_reps_s"].dropna(), 90),
+            "runtime_instance_median_mean_s": float(pd.to_numeric(inst_g["runtime_median_s"], errors="coerce").mean()) if len(inst_g) else np.nan,
+            "runtime_instance_median_std_s": std(inst_g["runtime_median_s"]),
+            "runtime_instance_median_p10_s": q(inst_g["runtime_median_s"].dropna(), 10),
+            "runtime_instance_median_p90_s": q(inst_g["runtime_median_s"].dropna(), 90),
         }
         for pct in [1, 2, 5, 10, 50, 75, 90]:
             row[f"gap_p{pct:02d}" if pct < 50 else ("gap_median" if pct == 50 else f"gap_p{pct}")] = q(gok["gap_ref_pct"].dropna(), pct)
@@ -659,6 +671,13 @@ def summarize(raw_df: pd.DataFrame, out_dir: Path) -> None:
     for keys, g in raw_df.groupby(["objective", "heuristic_id", "n", "p", "d"], dropna=False):
         objective, heuristic_id, n, p, d = keys
         gok = g[g["status"] == "ok"]
+        inst_size = inst_df[
+            (inst_df["objective"] == objective)
+            & (inst_df["heuristic_id"] == heuristic_id)
+            & (inst_df["n"] == n)
+            & (inst_df["p"] == p)
+            & (inst_df["d"] == d)
+        ]
         size_rows.append({
             "objective": objective,
             "heuristic_id": heuristic_id,
@@ -670,10 +689,21 @@ def summarize(raw_df: pd.DataFrame, out_dir: Path) -> None:
             "success_rate": len(gok) / max(1, len(g)),
             "gap_median": q(gok["gap_ref_pct"].dropna(), 50),
             "gap_p10": q(gok["gap_ref_pct"].dropna(), 10),
-            "gap_std": std(gok["gap_ref_pct"]),
+            # Overall dispersion within this size group; may mix repetitions and
+            # multiple instance IDs when more than one id is evaluated.
+            "gap_std_global_size": std(gok["gap_ref_pct"]),
+            # Stochasticity within this size group: std across repetitions first,
+            # then median/mean across instance IDs.
+            "gap_rep_std_mean": float(pd.to_numeric(inst_size["gap_std_reps"], errors="coerce").mean()) if len(inst_size) else np.nan,
+            "gap_rep_std_median": q(inst_size["gap_std_reps"].dropna(), 50),
+            # Cross-instance variation within this size group: std of instance-level medians.
+            "gap_instance_median_std": std(inst_size["gap_median"]),
             "runtime_median_s": q(gok["runtime_s"].dropna(), 50),
             "runtime_p90_s": q(gok["runtime_s"].dropna(), 90),
-            "runtime_std_s": std(gok["runtime_s"]),
+            "runtime_std_global_size_s": std(gok["runtime_s"]),
+            "runtime_rep_std_mean_s": float(pd.to_numeric(inst_size["runtime_std_reps_s"], errors="coerce").mean()) if len(inst_size) else np.nan,
+            "runtime_rep_std_median_s": q(inst_size["runtime_std_reps_s"].dropna(), 50),
+            "runtime_instance_median_std_s": std(inst_size["runtime_median_s"]),
         })
     size_df = pd.DataFrame(size_rows).sort_values(["objective", "heuristic_id", "d", "p", "n"])
     size_df.to_csv(out_dir / "summary_by_instance_size.csv", index=False)
