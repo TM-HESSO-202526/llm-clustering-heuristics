@@ -25,6 +25,10 @@ import re
 import socket
 import sys
 import time
+try:
+    import signal
+except Exception:  # pragma: no cover - non-POSIX fallback
+    signal = None
 import traceback
 import zipfile
 from dataclasses import dataclass
@@ -60,6 +64,40 @@ def stable_seed(*parts: Any) -> int:
     token = "::".join(map(str, parts)).encode("utf-8")
     return int(hashlib.sha256(token).hexdigest()[:16], 16) % (2**32 - 1)
 
+
+
+
+class HeuristicTimeoutError(TimeoutError):
+    """Raised when a single heuristic/instance/repetition exceeds timeout_s."""
+
+
+def _timeout_handler(signum, frame):  # type: ignore[no-untyped-def]
+    raise HeuristicTimeoutError("heuristic call exceeded timeout")
+
+
+def call_heuristic_with_timeout(heuristic, X: np.ndarray, p: int, rng: np.random.Generator, timeout_s: float):
+    """Call one heuristic with an enforced per-candidate timeout.
+
+    On the Linux server this uses SIGALRM, so a Python-level infinite loop is
+    interrupted instead of blocking the whole evaluator. This keeps runtime
+    measurements comparable because it does not spawn a new process for every
+    evaluation. Extremely long C/NumPy calls may only be interrupted once
+    control returns to Python, but the common LLM failure mode is Python loops.
+    """
+    use_alarm = signal is not None and hasattr(signal, "setitimer") and timeout_s and timeout_s > 0
+    old_handler = None
+    if use_alarm:
+        old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+        signal.setitimer(signal.ITIMER_REAL, float(timeout_s))
+    try:
+        try:
+            return heuristic(X, p, rng=rng)
+        except TypeError:
+            return heuristic(X, p)
+    finally:
+        if use_alarm:
+            signal.setitimer(signal.ITIMER_REAL, 0.0)
+            signal.signal(signal.SIGALRM, old_handler)
 
 def parse_instance_name(path_or_name: str | Path) -> Optional[Dict[str, int | str]]:
     base = os.path.basename(str(path_or_name))
@@ -582,53 +620,16 @@ def summarize(raw_df: pd.DataFrame, out_dir: Path) -> None:
     if ok.empty:
         pd.DataFrame().to_csv(out_dir / "summary_by_heuristic.csv", index=False)
         pd.DataFrame().to_csv(out_dir / "summary_by_instance_size.csv", index=False)
-        pd.DataFrame().to_csv(out_dir / "summary_by_heuristic_instance.csv", index=False)
         pd.DataFrame().to_csv(out_dir / "complexity_fit.csv", index=False)
         return
 
     def q(series, pct):
         return float(np.nanpercentile(series.astype(float), pct)) if len(series) else np.nan
 
-    def std(series):
-        vals = pd.to_numeric(series, errors="coerce").dropna()
-        return float(vals.std(ddof=1)) if len(vals) >= 2 else np.nan
-
-    # Direct stochasticity table: one row per heuristic × instance, with standard
-    # deviation computed across repetitions for that exact instance. This is the
-    # cleanest way to measure how stochastic a heuristic is without mixing
-    # different instance sizes or dimensions.
-    instance_rows = []
-    for keys, g in raw_df.groupby(["objective", "heuristic_id", "instance_name", "n", "p", "d", "instance_id"], dropna=False):
-        objective, heuristic_id, instance_name, n, p, d, instance_id = keys
-        gok = g[g["status"] == "ok"]
-        instance_rows.append({
-            "objective": objective,
-            "heuristic_id": heuristic_id,
-            "instance_name": instance_name,
-            "n": n,
-            "p": p,
-            "d": d,
-            "instance_id": instance_id,
-            "num_rows": len(g),
-            "num_ok": len(gok),
-            "success_rate": len(gok) / max(1, len(g)),
-            "gap_mean": float(pd.to_numeric(gok["gap_ref_pct"], errors="coerce").mean()) if len(gok) else np.nan,
-            "gap_std_reps": std(gok["gap_ref_pct"]),
-            "gap_median": q(gok["gap_ref_pct"].dropna(), 50),
-            "gap_p10": q(gok["gap_ref_pct"].dropna(), 10),
-            "runtime_mean_s": float(pd.to_numeric(gok["runtime_s"], errors="coerce").mean()) if len(gok) else np.nan,
-            "runtime_std_reps_s": std(gok["runtime_s"]),
-            "runtime_median_s": q(gok["runtime_s"].dropna(), 50),
-            "runtime_p90_s": q(gok["runtime_s"].dropna(), 90),
-        })
-    inst_df = pd.DataFrame(instance_rows).sort_values(["objective", "heuristic_id", "d", "p", "instance_id", "n"])
-    inst_df.to_csv(out_dir / "summary_by_heuristic_instance.csv", index=False)
-
     groups = []
     for keys, g in raw_df.groupby(["objective", "heuristic_id"], dropna=False):
         objective, heuristic_id = keys
         gok = g[g["status"] == "ok"]
-        inst_g = inst_df[(inst_df["objective"] == objective) & (inst_df["heuristic_id"] == heuristic_id)]
         row = {
             "objective": objective,
             "heuristic_id": heuristic_id,
@@ -636,30 +637,6 @@ def summarize(raw_df: pd.DataFrame, out_dir: Path) -> None:
             "num_ok": len(gok),
             "success_rate": len(gok) / max(1, len(g)),
             "timeout_rate": float((g["status"] == "timeout").mean()),
-            # Global std mixes instance difficulty and stochasticity; useful as a
-            # dispersion indicator, but not a pure stochasticity metric.
-            "gap_std_global": std(gok["gap_ref_pct"]),
-            "runtime_std_global_s": std(gok["runtime_s"]),
-            # These aggregate the per-instance std across repetitions, so they are
-            # better measures of stochasticity.
-            "gap_rep_std_mean": float(pd.to_numeric(inst_g["gap_std_reps"], errors="coerce").mean()) if len(inst_g) else np.nan,
-            "gap_rep_std_median": q(inst_g["gap_std_reps"].dropna(), 50),
-            "gap_rep_std_p90": q(inst_g["gap_std_reps"].dropna(), 90),
-            # Cross-instance robustness: dispersion of each instance's median gap.
-            # This is different from gap_rep_std_*: it measures whether a heuristic
-            # is consistently good across instance families/sizes/dimensions.
-            "gap_instance_median_mean": float(pd.to_numeric(inst_g["gap_median"], errors="coerce").mean()) if len(inst_g) else np.nan,
-            "gap_instance_median_std": std(inst_g["gap_median"]),
-            "gap_instance_median_p10": q(inst_g["gap_median"].dropna(), 10),
-            "gap_instance_median_p90": q(inst_g["gap_median"].dropna(), 90),
-            "gap_instance_median_iqr": q(inst_g["gap_median"].dropna(), 75) - q(inst_g["gap_median"].dropna(), 25) if len(inst_g["gap_median"].dropna()) else np.nan,
-            "runtime_rep_std_mean_s": float(pd.to_numeric(inst_g["runtime_std_reps_s"], errors="coerce").mean()) if len(inst_g) else np.nan,
-            "runtime_rep_std_median_s": q(inst_g["runtime_std_reps_s"].dropna(), 50),
-            "runtime_rep_std_p90_s": q(inst_g["runtime_std_reps_s"].dropna(), 90),
-            "runtime_instance_median_mean_s": float(pd.to_numeric(inst_g["runtime_median_s"], errors="coerce").mean()) if len(inst_g) else np.nan,
-            "runtime_instance_median_std_s": std(inst_g["runtime_median_s"]),
-            "runtime_instance_median_p10_s": q(inst_g["runtime_median_s"].dropna(), 10),
-            "runtime_instance_median_p90_s": q(inst_g["runtime_median_s"].dropna(), 90),
         }
         for pct in [1, 2, 5, 10, 50, 75, 90]:
             row[f"gap_p{pct:02d}" if pct < 50 else ("gap_median" if pct == 50 else f"gap_p{pct}")] = q(gok["gap_ref_pct"].dropna(), pct)
@@ -671,13 +648,6 @@ def summarize(raw_df: pd.DataFrame, out_dir: Path) -> None:
     for keys, g in raw_df.groupby(["objective", "heuristic_id", "n", "p", "d"], dropna=False):
         objective, heuristic_id, n, p, d = keys
         gok = g[g["status"] == "ok"]
-        inst_size = inst_df[
-            (inst_df["objective"] == objective)
-            & (inst_df["heuristic_id"] == heuristic_id)
-            & (inst_df["n"] == n)
-            & (inst_df["p"] == p)
-            & (inst_df["d"] == d)
-        ]
         size_rows.append({
             "objective": objective,
             "heuristic_id": heuristic_id,
@@ -689,21 +659,8 @@ def summarize(raw_df: pd.DataFrame, out_dir: Path) -> None:
             "success_rate": len(gok) / max(1, len(g)),
             "gap_median": q(gok["gap_ref_pct"].dropna(), 50),
             "gap_p10": q(gok["gap_ref_pct"].dropna(), 10),
-            # Overall dispersion within this size group; may mix repetitions and
-            # multiple instance IDs when more than one id is evaluated.
-            "gap_std_global_size": std(gok["gap_ref_pct"]),
-            # Stochasticity within this size group: std across repetitions first,
-            # then median/mean across instance IDs.
-            "gap_rep_std_mean": float(pd.to_numeric(inst_size["gap_std_reps"], errors="coerce").mean()) if len(inst_size) else np.nan,
-            "gap_rep_std_median": q(inst_size["gap_std_reps"].dropna(), 50),
-            # Cross-instance variation within this size group: std of instance-level medians.
-            "gap_instance_median_std": std(inst_size["gap_median"]),
             "runtime_median_s": q(gok["runtime_s"].dropna(), 50),
             "runtime_p90_s": q(gok["runtime_s"].dropna(), 90),
-            "runtime_std_global_size_s": std(gok["runtime_s"]),
-            "runtime_rep_std_mean_s": float(pd.to_numeric(inst_size["runtime_std_reps_s"], errors="coerce").mean()) if len(inst_size) else np.nan,
-            "runtime_rep_std_median_s": q(inst_size["runtime_std_reps_s"].dropna(), 50),
-            "runtime_instance_median_std_s": std(inst_size["runtime_median_s"]),
         })
     size_df = pd.DataFrame(size_rows).sort_values(["objective", "heuristic_id", "d", "p", "n"])
     size_df.to_csv(out_dir / "summary_by_instance_size.csv", index=False)
@@ -767,21 +724,20 @@ def main() -> int:
     ap.add_argument("--p-values", type=str, default=None, help="Comma-separated p values, e.g. 20,40")
     ap.add_argument("--d-values", type=str, default=None, help="Comma-separated dimensions, e.g. 2")
     ap.add_argument("--instance-ids", type=str, default=None, help="Comma-separated instance ids, e.g. 0,1")
-    ap.add_argument("--timeout-s", type=float, default=300.0, help="Recorded only in this smoke script; hard process killing can be added later.")
+    ap.add_argument("--timeout-s", type=float, default=300.0, help="Per heuristic/instance/repetition timeout in seconds. On Linux this is enforced with SIGALRM.")
+    ap.add_argument("--resume", action="store_true", help="Resume an existing output directory by skipping rows already present in raw_results.csv.")
     ap.add_argument("--distance-batch-size", type=int, default=1024)
     ap.add_argument("--global-seed", type=int, default=12345)
     ap.add_argument("--flush-every", type=int, default=1)
     args = ap.parse_args()
 
     def parse_int_list(s: Optional[str]) -> Optional[List[int]]:
-        if s is None:
+        if not s:
             return None
-        text = str(s).strip()
-        if not text:
+        token = str(s).strip()
+        if token == "" or token.upper() in {"ALL", "*", "NONE", "NULL"}:
             return None
-        if text.lower() in {"all", "*", "none", "null", "any"}:
-            return None
-        return [int(x.strip()) for x in text.split(",") if x.strip()]
+        return [int(x.strip()) for x in token.split(",") if x.strip()]
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     run_config = vars(args).copy()
@@ -828,17 +784,34 @@ def main() -> int:
         "error_message", "center_repaired", "center_note", "hostname",
     ]
     rows: List[Dict[str, Any]] = []
+    completed_keys = set()
+    if args.resume and raw_path.exists():
+        try:
+            existing_df = pd.read_csv(raw_path)
+            rows = existing_df.to_dict("records")
+            for r in rows:
+                completed_keys.add((str(r.get("heuristic_id")), str(r.get("instance_name")), int(r.get("rep"))))
+            print(f"Resume enabled: loaded {len(rows)} existing rows from {raw_path}", flush=True)
+        except Exception as exc:
+            print(f"WARNING: --resume requested but could not read {raw_path}: {exc}", flush=True)
 
     # Cache loaded instances, but not heuristics; importing each run fresh avoids hidden state across reps.
     instance_cache: Dict[str, np.ndarray] = {}
     total = args.repetitions * len(heuristics) * len(instances)
     done = 0
+    skipped = 0
 
     for rep in range(1, args.repetitions + 1):
         print(f"\n=== repetition {rep}/{args.repetitions} ===", flush=True)
         for h in heuristics:
             for inst in instances:
+                key = (h.heuristic_id, inst.name, rep)
                 done += 1
+                if key in completed_keys:
+                    skipped += 1
+                    if skipped <= 5 or skipped % 100 == 0:
+                        print(f"[{done}/{total}] rep={rep} {h.heuristic_id} {inst.name}: skipped existing row", flush=True)
+                    continue
                 seed = stable_seed(args.global_seed, args.objective, h.heuristic_id, inst.name, rep)
                 rng = np.random.default_rng(seed)
                 row: Dict[str, Any] = {
@@ -871,14 +844,23 @@ def main() -> int:
                         instance_cache[inst.name] = X
                     heuristic = load_heuristic(h.code_path)
                     try:
-                        raw_centers = heuristic(X, inst.p, rng=rng)
-                    except TypeError:
-                        raw_centers = heuristic(X, inst.p)
+                        raw_centers = call_heuristic_with_timeout(heuristic, X, inst.p, rng, args.timeout_s)
+                    except HeuristicTimeoutError:
+                        runtime_s = time.perf_counter() - t0
+                        row.update({
+                            "runtime_s": runtime_s,
+                            "status": "timeout",
+                            "error_type": "candidate_timeout",
+                            "error_message": f"heuristic call exceeded timeout_s={args.timeout_s:.3f}",
+                        })
+                        print(f"[{done}/{total}] rep={rep} {h.heuristic_id} {inst.name}: TIMEOUT after {runtime_s:.3f}s", flush=True)
+                        rows.append(row)
+                        completed_keys.add(key)
+                        if len(rows) % max(1, args.flush_every) == 0:
+                            pd.DataFrame(rows).to_csv(raw_path, index=False)
+                            summarize(pd.DataFrame(rows), args.output_dir)
+                        continue
                     runtime_s = time.perf_counter() - t0
-                    if runtime_s > args.timeout_s:
-                        row["status"] = "timeout"
-                        row["error_type"] = "soft_timeout_after_return"
-                        row["error_message"] = f"runtime {runtime_s:.3f}s exceeded timeout {args.timeout_s:.3f}s"
                     C, repaired, note = normalize_centers(raw_centers, X, inst.p, rng, args.objective, args.distance_batch_size)
                     val = objective_value(X, C, args.objective, args.distance_batch_size)
                     ref = reference_from_table(ref_df, inst.name, args.objective)
@@ -907,6 +889,7 @@ def main() -> int:
                     print(f"[{done}/{total}] rep={rep} {h.heuristic_id} {inst.name}: ERROR {type(exc).__name__}: {exc}", flush=True)
                     (args.output_dir / "last_error_traceback.txt").write_text(traceback.format_exc(), encoding="utf-8")
                 rows.append(row)
+                completed_keys.add(key)
                 if len(rows) % max(1, args.flush_every) == 0:
                     pd.DataFrame(rows).to_csv(raw_path, index=False)
                     summarize(pd.DataFrame(rows), args.output_dir)
@@ -915,8 +898,10 @@ def main() -> int:
     raw_df.to_csv(raw_path, index=False)
     summarize(raw_df, args.output_dir)
     print("\nDone.")
+    if args.resume:
+        print(f"Resume skipped existing rows: {skipped}")
     print("Wrote:")
-    for name in ["raw_results.csv", "summary_by_heuristic.csv", "summary_by_instance_size.csv", "summary_by_heuristic_instance.csv", "complexity_fit.csv", "run_config.json"]:
+    for name in ["raw_results.csv", "summary_by_heuristic.csv", "summary_by_instance_size.csv", "complexity_fit.csv", "run_config.json"]:
         print(" -", args.output_dir / name)
     return 0
 

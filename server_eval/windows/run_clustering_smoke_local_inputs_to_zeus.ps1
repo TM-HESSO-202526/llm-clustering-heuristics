@@ -1,11 +1,15 @@
 # ============================================================
-# Smoke / evaluation launcher for llm-clustering-heuristics on IICT Zeus
+# Smoke / final evaluation launcher for llm-clustering-heuristics on IICT Zeus
 #
 # Runs from your Windows PC.
 # Uses PRIVATE local input files from:
 #   D:\Users\antho\TM\server_eval_inputs
 #
-# It does NOT require pushing benchmark/reference files to GitHub.
+# Supports:
+# - objective switching: sse / pmedian / radius
+# - ALL filters for p, d, instance_id
+# - resume into an existing remote output folder
+# - server-side candidate timeout enforcement via run_selected_clustering_smoke.py
 # ============================================================
 
 # ------------------------------
@@ -29,24 +33,24 @@ $LOCAL_RESULTS_DIR = "D:\Users\antho\TM\server_eval_results"
 # ------------------------------
 # Run settings
 # OBJECTIVE can be: pmedian, sse, radius
+# Use ALL to disable a filter.
+# Example broad held-out sweep: P_VALUES=ALL, D_VALUES=ALL, INSTANCE_IDS=5
 # ------------------------------
-$OBJECTIVE = "pmedian"
+$OBJECTIVE = "sse"
 $REPS = 10
 $MAX_HEURISTICS = 1000
 $MAX_INSTANCES = 1000
 $TIMEOUT_S = 300
 
-# Instance filters. Use "ALL" to load every available cluster_tai instance.
-# Examples:
-#   $P_VALUES = "ALL"              # all p values in cluster_tai.zip
-#   $P_VALUES = "20,40,70"         # only these p values
-#   $D_VALUES = "ALL"              # all dimensions in cluster_tai.zip
-#   $D_VALUES = "2"                # only d=2
-#   $INSTANCE_IDS = "ALL"          # all instance ids
-#   $INSTANCE_IDS = "0,1,2,3,4"    # only these ids
 $P_VALUES = "ALL"
 $D_VALUES = "ALL"
 $INSTANCE_IDS = "5"
+
+# Resume mode:
+# Leave empty for a new run.
+# To continue an interrupted run, paste the exact remote folder here, for example:
+# $RESUME_REMOTE_DIR = "/home/anthony.atallah/workspace/TM/final-results/clustering_smoke/sse_smoke_20260528_141153"
+$RESUME_REMOTE_DIR = ""
 
 # ------------------------------
 # Remote paths
@@ -101,6 +105,14 @@ if ($OBJECTIVE -eq "radius") {
     $REMOTE_REFERENCE_FILE = "$REMOTE_INPUT_DIR/kmeans.res"
 }
 
+if ([string]::IsNullOrWhiteSpace($RESUME_REMOTE_DIR)) {
+    $REMOTE_OUT_DIR = ""
+    $RESUME_FLAG = "0"
+} else {
+    $REMOTE_OUT_DIR = $RESUME_REMOTE_DIR
+    $RESUME_FLAG = "1"
+}
+
 Write-Host "=== Running smoke/evaluation on server ==="
 Write-Host "Objective:       $OBJECTIVE"
 Write-Host "Repetitions:     $REPS"
@@ -109,7 +121,11 @@ Write-Host "Max instances:   $MAX_INSTANCES"
 Write-Host "P values:        $P_VALUES"
 Write-Host "D values:        $D_VALUES"
 Write-Host "Instance ids:    $INSTANCE_IDS"
+Write-Host "Timeout seconds: $TIMEOUT_S"
 Write-Host "Reference file:  $REMOTE_REFERENCE_FILE"
+if ($RESUME_FLAG -eq "1") {
+    Write-Host "Resume folder:   $REMOTE_OUT_DIR"
+}
 
 $remoteCommands = @"
 set -euo pipefail
@@ -133,6 +149,8 @@ source /home/$AAI_USERNAME/data-local/TM/venvs/final-eval/bin/activate
 CLUSTER_ZIP=/home/$AAI_USERNAME/data-local/TM/input/cluster_tai.zip \
 REFERENCE_FILE=$REMOTE_REFERENCE_FILE \
 OUT_ROOT=/home/$AAI_USERNAME/workspace/TM/final-results/clustering_smoke \
+OUT_DIR=$REMOTE_OUT_DIR \
+RESUME=$RESUME_FLAG \
 OBJECTIVE=$OBJECTIVE \
 REPS=$REPS \
 MAX_HEURISTICS=$MAX_HEURISTICS \
@@ -142,8 +160,6 @@ D_VALUES=$D_VALUES \
 INSTANCE_IDS=$INSTANCE_IDS \
 TIMEOUT_S=$TIMEOUT_S \
 bash server_eval/run_smoke_clustering.sh
-
-echo "LATEST_RESULT_DIR=`$(ls -td /home/$AAI_USERNAME/workspace/TM/final-results/clustering_smoke/* | head -1)"
 "@
 
 $remoteOutput = $remoteCommands | ssh $REMOTE "bash -s"
@@ -168,6 +184,3 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host "=== DONE ==="
 Write-Host "Remote latest result: $LATEST_REMOTE_DIR"
 Write-Host "Local copy:           $LOCAL_OBJECTIVE_DIR\$LATEST_FOLDER_NAME"
-Write-Host ""
-Write-Host "Check run_config.json. For radius, reference_csv_or_zip should be:"
-Write-Host "  $REMOTE_INPUT_DIR/generator_radius_reference_last_p.zip"
