@@ -9,6 +9,9 @@ dependencies = [
     "requests>=2.31",
     "PyYAML>=6.0",
     "psutil>=5.9",
+    "scikit-learn>=1.3",
+    "scipy>=1.10",
+    "kmedoids>=0.5",
 ]
 
 [tool.setuptools.packages.find]
