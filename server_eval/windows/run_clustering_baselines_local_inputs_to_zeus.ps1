@@ -438,7 +438,7 @@ if [ "$RESUME" = "1" ]; then RESUME_ARGS=(--resume); fi
 TAILLARD_ARGS=()
 if [ "$OBJECTIVE" = "radius" ]; then TAILLARD_ARGS=(--taillard-exe "$TAILLARD_EXE"); fi
 
-python server_eval/run_external_clustering_baselines.py \
+PYTHONPATH="$REPO_DIR:${PYTHONPATH:-}" python -m server_eval.run_external_clustering_baselines \
   --objective "$OBJECTIVE" \
   --baselines "$BASELINE_ID" \
   --cluster-zip "$CLUSTER_ZIP" \

@@ -40,6 +40,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+# Make the repository root importable when this file is executed as:
+#   python server_eval/run_external_clustering_baselines.py
+# Without this, Python puts server_eval/ on sys.path instead of the repo root,
+# and imports such as server_eval.run_selected_clustering_smoke can fail on Zeus.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import numpy as np
 import pandas as pd
 
