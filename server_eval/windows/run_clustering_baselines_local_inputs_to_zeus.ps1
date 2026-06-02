@@ -357,9 +357,15 @@ status_report() {
     raw="$RUN_ROOT/$b/raw_results.csv"
     rows=0
     if [ -f "$raw" ]; then
-      rows=$(wc -l < "$raw")
-      rows=$((rows - 1))
-      if [ "$rows" -lt 0 ]; then rows=0; fi
+      rows=$(python - "$raw" <<'PYCSV'
+import csv, sys
+try:
+    with open(sys.argv[1], newline='', encoding='utf-8', errors='ignore') as f:
+        print(max(0, sum(1 for _ in csv.DictReader(f))))
+except Exception:
+    print(0)
+PYCSV
+      )
     fi
     out_dir="$RUN_ROOT/$b"
     if [ "$rows" -ge "$EXPECTED_TASKS" ] && [ "$EXPECTED_TASKS" -gt 0 ]; then
@@ -517,9 +523,15 @@ for b in "${FILTERED_BASELINES[@]}"; do
   log="$RUN_ROOT/$b.log"
   rows=0
   if [ -f "$raw" ]; then
-    rows=$(wc -l < "$raw")
-    rows=$((rows - 1))
-    if [ "$rows" -lt 0 ]; then rows=0; fi
+    rows=$(python - "$raw" <<'PYCSV'
+import csv, sys
+try:
+    with open(sys.argv[1], newline='', encoding='utf-8', errors='ignore') as f:
+        print(max(0, sum(1 for _ in csv.DictReader(f))))
+except Exception:
+    print(0)
+PYCSV
+    )
   fi
   if [ "$rows" -ge "$EXPECTED_TASKS" ] && [ "$EXPECTED_TASKS" -gt 0 ]; then
     echo "Skip complete: $b [$rows/$EXPECTED_TASKS]"

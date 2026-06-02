@@ -35,6 +35,7 @@ import socket
 import subprocess
 import sys
 import time
+import tempfile
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
@@ -320,27 +321,65 @@ def radius_baseline_option(baseline_id: str) -> int:
     }[baseline_id]
 
 
-def run_taillard_cpp_radius(taillard_exe: Path, instance_path: Path, option: int, seed: int, timeout_s: float) -> Tuple[float, float, str]:
+def _write_taillard_radius_input(X: np.ndarray, inst: InstanceSpec) -> Path:
+    """Write a temporary instance file in the simple format expected by the Taillard C++ code.
+
+    The cluster_tai CSV files are parsed robustly by the Python evaluator, but the C++
+    baseline expects:
+        n p d dummy dummy
+        x_1 ... x_d
+        ...
+    Passing the original CSV directly can fail depending on headers/separators. This
+    wrapper makes the C++ parser independent of the source CSV layout.
+    """
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        prefix=f"taillard_radius_{inst.name}_",
+        suffix=".dat",
+        delete=False,
+    )
+    path = Path(tmp.name)
+    try:
+        tmp.write(f"{inst.n} {inst.p} {inst.d} 0 0\n")
+        Xi = np.rint(np.asarray(X, dtype=float)).astype(np.int64)
+        if Xi.shape != (inst.n, inst.d):
+            raise ValueError(f"Expected X shape {(inst.n, inst.d)} for {inst.name}, got {Xi.shape}")
+        for row in Xi:
+            tmp.write(" ".join(str(int(v)) for v in row) + "\n")
+    finally:
+        tmp.close()
+    return path
+
+
+def run_taillard_cpp_radius(taillard_exe: Path, X: np.ndarray, inst: InstanceSpec, option: int, seed: int, timeout_s: float) -> Tuple[float, float, str]:
     if taillard_exe is None or not Path(taillard_exe).exists():
         raise FileNotFoundError(f"Missing Taillard radius executable: {taillard_exe}")
-    cmd = [str(taillard_exe), str(instance_path), str(option), str(seed)]
-    t0 = time.perf_counter()
-    proc = subprocess.run(cmd, text=True, capture_output=True, timeout=float(timeout_s) if timeout_s else None)
-    wall = time.perf_counter() - t0
-    out = (proc.stdout or "") + "\n" + (proc.stderr or "")
-    if proc.returncode != 0:
-        raise RuntimeError(f"Taillard radius executable failed with code {proc.returncode}. Output:\n{out[-2000:]}")
-    cost = None
-    runtime = None
-    for line in out.splitlines():
-        line = line.strip()
-        if line.startswith("COST "):
-            cost = float(line.split()[1])
-        elif line.startswith("TIME_S "):
-            runtime = float(line.split()[1])
-    if cost is None:
-        raise RuntimeError(f"Could not parse COST from Taillard output:\n{out[-2000:]}")
-    return float(cost), float(runtime if runtime is not None else wall), out[-4000:]
+    tmp_path = _write_taillard_radius_input(X, inst)
+    try:
+        cmd = [str(taillard_exe), str(tmp_path), str(option), str(seed)]
+        t0 = time.perf_counter()
+        proc = subprocess.run(cmd, text=True, capture_output=True, timeout=float(timeout_s) if timeout_s else None)
+        wall = time.perf_counter() - t0
+        out = (proc.stdout or "") + "\n" + (proc.stderr or "")
+        if proc.returncode != 0:
+            raise RuntimeError(f"Taillard radius executable failed with code {proc.returncode}. Output:\n{out[-2000:]}")
+        cost = None
+        runtime = None
+        for line in out.splitlines():
+            line = line.strip()
+            if line.startswith("COST "):
+                cost = float(line.split()[1])
+            elif line.startswith("TIME_S "):
+                runtime = float(line.split()[1])
+        if cost is None:
+            raise RuntimeError(f"Could not parse COST from Taillard output:\n{out[-2000:]}")
+        return float(cost), float(runtime if runtime is not None else wall), out[-4000:]
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
 
 
 def run_baseline(spec: BaselineSpec, X: np.ndarray, inst: InstanceSpec, rep: int, seed: int, timeout_s: float, taillard_exe: Optional[Path]) -> Tuple[float, float, str]:
@@ -360,7 +399,7 @@ def run_baseline(spec: BaselineSpec, X: np.ndarray, inst: InstanceSpec, rep: int
 
     if spec.objective == "radius":
         option = radius_baseline_option(spec.baseline_id)
-        cost, runtime_s, cpp_out = run_taillard_cpp_radius(Path(taillard_exe), inst.path, option=option, seed=seed, timeout_s=timeout_s)
+        cost, runtime_s, cpp_out = run_taillard_cpp_radius(Path(taillard_exe), X, inst, option=option, seed=seed, timeout_s=timeout_s)
         return cost, runtime_s, f"taillard_option={option}; cpp_output_tail={cpp_out.replace(chr(10), ' | ')[:1500]}"
 
     raise ValueError(spec.objective)
@@ -512,7 +551,7 @@ def main() -> int:
                             "runtime_s": runtime_s,
                             "status": "timeout",
                             "error_type": "candidate_timeout",
-                            "error_message": f"baseline call exceeded timeout_s={args.timeout_s:.3f}: {exc}",
+                            "error_message": f"baseline call exceeded timeout_s={args.timeout_s:.3f}: {exc}".replace("\n", " | ").replace("\r", " "),
                         })
                         print(f"[{done}/{total}] rep={rep} {b.baseline_id} {inst.name}: TIMEOUT after {runtime_s:.3f}s", flush=True)
                         rows.append(row)
@@ -541,7 +580,7 @@ def main() -> int:
                 except Exception as exc:
                     row["runtime_s"] = time.perf_counter() - t0
                     row["error_type"] = type(exc).__name__
-                    row["error_message"] = str(exc)[:1000]
+                    row["error_message"] = str(exc).replace("\n", " | ").replace("\r", " ")[:1000]
                     print(f"[{done}/{total}] rep={rep} {b.baseline_id} {inst.name}: ERROR {type(exc).__name__}: {exc}", flush=True)
                     (args.output_dir / "last_error_traceback.txt").write_text(traceback.format_exc(), encoding="utf-8")
                 rows.append(row)
