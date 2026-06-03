@@ -1,10 +1,10 @@
 # ============================================================
-# Parallel external-baseline evaluation launcher for llm-clustering-heuristics on IICT Zeus
+# Parallel radius-transfer external-baseline evaluation launcher for llm-clustering-heuristics on IICT Zeus
 #
 # Runs from your Windows PC:
 #   cd D:\Users\antho\TM\llm-clustering-heuristics\server_eval\windows
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-#   .\run_clustering_baselines_local_inputs_to_zeus.ps1
+#   .\run_clustering_radius_transfer_baselines_local_inputs_to_zeus.ps1
 #
 # Methodology:
 # - one tmux session per external baseline
@@ -39,14 +39,14 @@ $LOCAL_RESULTS_DIR = "D:\Users\antho\TM\server_eval_results"
 # status   = show progress for this objective/run label, do not launch
 # download = download current run root
 # ------------------------------
-$ACTION = "status"
+$ACTION = "launch"
 
 # ------------------------------
 # Run settings
 # OBJECTIVE can be: sse / pmedian / radius / radius_transfer
 # ------------------------------
-$OBJECTIVE = "pmedian"
-$RUN_LABEL = "all270_5reps_by_baseline"
+$OBJECTIVE = "radius_transfer"
+$RUN_LABEL = "from_sse_pmedian_all270_5reps"
 
 $REPS = 5
 $MAX_BASELINES = 1000
@@ -63,14 +63,19 @@ $INSTANCE_IDS = "0,1,2,3,4,5,6,7,8,9"
 $CORES_TO_USE = @(0,1,2,3,4,5,6,7,8,9)
 $MAX_NEW_JOBS = 10
 
-# Use @("ALL") for all final baselines for the objective.
-# Or specify exact ids, for example:
-# $BASELINES_TO_LAUNCH = @("01_sklearn_kmeans_pp_ninit20", "02_sklearn_minibatch_kmeans")
+# Use @("ALL") for all radius-transfer baselines, or specify exact ids.
+# Final transfer baselines:
+#   01_radius_from_kmeans_pp_ninit20_snap
+#   02_radius_from_minibatch_kmeans_snap
+#   03_radius_from_bisecting_kmeans_snap
+#   04_radius_from_fastpam1
+#   05_radius_from_fasterpam
+#   06_radius_from_clara_like_sampled_pam
 $BASELINES_TO_LAUNCH = @("ALL")
 
 # first launch of a new evaluation: $START_NEW_RUN = $true
 # later refill/status/download for same evaluation: $START_NEW_RUN = $false
-$START_NEW_RUN = $false
+$START_NEW_RUN = $true
 
 # Exact remote folder override. Leave empty normally.
 $RUN_ROOT_OVERRIDE = ""

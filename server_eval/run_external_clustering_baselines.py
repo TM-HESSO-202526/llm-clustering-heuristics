@@ -22,6 +22,13 @@ radius:
   01_taillard_cpp_option0_kmeans_like
   02_taillard_cpp_option1_pam
   03_taillard_cpp_option2_hybrid_sample_pam_refinement
+radius_transfer:
+  01_radius_from_kmeans_pp_ninit20_snap
+  02_radius_from_minibatch_kmeans_snap
+  03_radius_from_bisecting_kmeans_snap
+  04_radius_from_fastpam1
+  05_radius_from_fasterpam
+  06_radius_from_clara_like_sampled_pam
 """
 from __future__ import annotations
 
@@ -98,6 +105,14 @@ BASELINES: Dict[str, List[BaselineSpec]] = {
         BaselineSpec("01_taillard_cpp_option0_kmeans_like", "radius", "taillard_cpp", "Taillard C++ option 0: k-means/k-median-like refinement."),
         BaselineSpec("02_taillard_cpp_option1_pam", "radius", "taillard_cpp", "Taillard C++ option 1: PAM."),
         BaselineSpec("03_taillard_cpp_option2_hybrid_sample_pam_refinement", "radius", "taillard_cpp", "Taillard C++ option 2: sample PAM plus k-means/k-median-like refinement."),
+    ],
+    "radius_transfer": [
+        BaselineSpec("01_radius_from_kmeans_pp_ninit20_snap", "radius_transfer", "sse_transfer", "KMeans++ n_init=20 centers snapped to nearest data points, evaluated with radius-volume objective."),
+        BaselineSpec("02_radius_from_minibatch_kmeans_snap", "radius_transfer", "sse_transfer", "MiniBatchKMeans centers snapped to nearest data points, evaluated with radius-volume objective."),
+        BaselineSpec("03_radius_from_bisecting_kmeans_snap", "radius_transfer", "sse_transfer", "BisectingKMeans centers snapped to nearest data points, evaluated with radius-volume objective."),
+        BaselineSpec("04_radius_from_fastpam1", "radius_transfer", "pmedian_transfer", "FastPAM1 medoids evaluated with radius-volume objective."),
+        BaselineSpec("05_radius_from_fasterpam", "radius_transfer", "pmedian_transfer", "FasterPAM medoids evaluated with radius-volume objective."),
+        BaselineSpec("06_radius_from_clara_like_sampled_pam", "radius_transfer", "pmedian_transfer", "CLARA-like sampled PAM medoids evaluated with radius-volume objective."),
     ],
 }
 
@@ -313,6 +328,63 @@ def _pmedian_centers(baseline_id: str, X: np.ndarray, p: int, seed: int) -> np.n
     raise ValueError(f"Unsupported pmedian baseline {baseline_id}")
 
 
+
+def snap_centers_to_nearest_points(X: np.ndarray, C: np.ndarray) -> np.ndarray:
+    """Snap free Euclidean centers to nearest distinct input points.
+
+    This is used for transferring SSE-style free-center baselines to the
+    radius-volume setting, where the selected-center heuristics are interpreted
+    as data-point centers. The distinctness repair avoids losing centers if two
+    free centers snap to the same entity.
+    """
+    X = np.asarray(X, dtype=float)
+    C = np.asarray(C, dtype=float)
+    chosen: List[int] = []
+    used = set()
+    for c in C:
+        d2 = np.sum((X - c[None, :]) ** 2, axis=1)
+        order = np.argsort(d2, kind="mergesort")
+        pick = None
+        for idx in order:
+            ii = int(idx)
+            if ii not in used:
+                pick = ii
+                break
+        if pick is None:
+            pick = int(order[0])
+        chosen.append(pick)
+        used.add(pick)
+    return X[np.asarray(chosen, dtype=int)].copy()
+
+
+def _radius_transfer_centers(baseline_id: str, X: np.ndarray, p: int, seed: int) -> Tuple[np.ndarray, str]:
+    """Produce centers from A/B baselines and evaluate them under objective C.
+
+    SSE baselines produce free Euclidean centers, so they are snapped to nearest
+    input points before radius-volume evaluation. p-median baselines already
+    produce data-point centers.
+    """
+    if baseline_id == "01_radius_from_kmeans_pp_ninit20_snap":
+        C_free = _sse_sklearn_centers("01_sklearn_kmeans_pp_ninit20", X, p, seed)
+        return snap_centers_to_nearest_points(X, C_free), "source=sse_kmeans_pp_ninit20; snapped_to_data_points"
+    if baseline_id == "02_radius_from_minibatch_kmeans_snap":
+        C_free = _sse_sklearn_centers("02_sklearn_minibatch_kmeans", X, p, seed)
+        return snap_centers_to_nearest_points(X, C_free), "source=sse_minibatch_kmeans; snapped_to_data_points"
+    if baseline_id == "03_radius_from_bisecting_kmeans_snap":
+        C_free = _sse_sklearn_centers("03_sklearn_bisecting_kmeans", X, p, seed)
+        return snap_centers_to_nearest_points(X, C_free), "source=sse_bisecting_kmeans; snapped_to_data_points"
+    if baseline_id == "04_radius_from_fastpam1":
+        C = _pmedian_centers("02_python_kmedoids_fastpam1", X, p, seed)
+        return C, "source=pmedian_fastpam1; centers_are_data_points"
+    if baseline_id == "05_radius_from_fasterpam":
+        C = _pmedian_centers("03_python_kmedoids_fasterpam", X, p, seed)
+        return C, "source=pmedian_fasterpam; centers_are_data_points"
+    if baseline_id == "06_radius_from_clara_like_sampled_pam":
+        C = _pmedian_centers("04_clara_like_sampled_pam", X, p, seed)
+        return C, "source=pmedian_clara_like_sampled_pam; centers_are_data_points"
+    raise ValueError(f"Unsupported radius-transfer baseline {baseline_id}")
+
+
 def radius_baseline_option(baseline_id: str) -> int:
     return {
         "01_taillard_cpp_option0_kmeans_like": 0,
@@ -397,6 +469,13 @@ def run_baseline(spec: BaselineSpec, X: np.ndarray, inst: InstanceSpec, rep: int
         runtime_s = time.perf_counter() - t0
         return objective_value(X, C, objective="pmedian", batch_size=1024), runtime_s, "centers_are_data_points"
 
+    if spec.objective == "radius_transfer":
+        with timeout_guard(timeout_s):
+            C, note = _radius_transfer_centers(spec.baseline_id, X, inst.p, seed)
+        runtime_s = time.perf_counter() - t0
+        val = objective_value(X, C, objective="radius", batch_size=1024)
+        return val, runtime_s, note
+
     if spec.objective == "radius":
         option = radius_baseline_option(spec.baseline_id)
         cost, runtime_s, cpp_out = run_taillard_cpp_radius(Path(taillard_exe), X, inst, option=option, seed=seed, timeout_s=timeout_s)
@@ -420,7 +499,7 @@ def write_baseline_registry(out_dir: Path) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Run external clustering baselines on cluster_tai instances.")
-    ap.add_argument("--objective", choices=["sse", "pmedian", "radius"], required=True)
+    ap.add_argument("--objective", choices=["sse", "pmedian", "radius", "radius_transfer"], required=True)
     ap.add_argument("--baselines", type=str, default="ALL", help="Comma-separated baseline ids or ALL.")
     ap.add_argument("--cluster-zip", type=Path, default=Path("data/raw/cluster_tai.zip"))
     ap.add_argument("--extract-dir", type=Path, default=Path("/tmp/cluster_tai_instances_final_eval"))
@@ -438,6 +517,7 @@ def main() -> int:
     ap.add_argument("--flush-every", type=int, default=1)
     ap.add_argument("--taillard-exe", type=Path, default=None, help="Compiled Taillard radius baseline executable, required for radius.")
     args = ap.parse_args()
+    effective_objective = "radius" if args.objective == "radius_transfer" else args.objective
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     write_baseline_registry(args.output_dir)
@@ -453,6 +533,7 @@ def main() -> int:
         "start_time": time.strftime("%Y-%m-%d %H:%M:%S"),
         "loop_order": "rep_outer_then_baseline_then_instance",
         "artifact_schema": "same_as_run_selected_clustering_smoke_with_heuristic_id_as_baseline_id",
+        "effective_objective_for_value_and_reference": effective_objective,
     })
     (args.output_dir / "run_config.json").write_text(json.dumps(run_config, indent=2), encoding="utf-8")
 
@@ -471,7 +552,7 @@ def main() -> int:
     )
     baselines = parse_baseline_filter(args.baselines, args.objective, args.max_baselines)
     center_constraint = "free" if args.objective == "sse" else "snap_to_points"
-    ref_df = load_reference_table(args.reference_csv_or_zip, args.objective, center_constraint=center_constraint)
+    ref_df = load_reference_table(args.reference_csv_or_zip, effective_objective, center_constraint=center_constraint)
 
     print(f"Objective: {args.objective}")
     print(f"Baselines: {len(baselines)}")
@@ -561,12 +642,12 @@ def main() -> int:
                             df.to_csv(raw_path, index=False)
                             summarize(df, args.output_dir)
                         continue
-                    ref = reference_from_table(ref_df, inst.name, args.objective)
+                    ref = reference_from_table(ref_df, inst.name, effective_objective)
                     if ref is None:
-                        if args.objective == "radius":
-                            ref = generator_last_p_reference(X, inst.p, args.objective, 1024)
+                        if effective_objective == "radius":
+                            ref = generator_last_p_reference(X, inst.p, effective_objective, 1024)
                         else:
-                            raise KeyError(f"Missing {args.objective} reference for instance {inst.name} in {args.reference_csv_or_zip}")
+                            raise KeyError(f"Missing {effective_objective} reference for instance {inst.name} in {args.reference_csv_or_zip}")
                     gap = 100.0 * (val - ref) / ref if ref and np.isfinite(ref) and ref != 0 else np.nan
                     row.update({
                         "objective_value": val,
