@@ -45,7 +45,7 @@ $ACTION = "status"
 # Run settings
 # OBJECTIVE can be: sse / pmedian / radius / radius_transfer
 # ------------------------------
-$OBJECTIVE = "pmedian"
+$OBJECTIVE = "radius"
 $RUN_LABEL = "all270_5reps_by_baseline"
 
 $REPS = 5

@@ -39,7 +39,7 @@ $LOCAL_RESULTS_DIR = "D:\Users\antho\TM\server_eval_results"
 # status   = show progress for this objective/run label, do not launch
 # download = download current run root
 # ------------------------------
-$ACTION = "launch"
+$ACTION = "download"
 
 # ------------------------------
 # Run settings
@@ -75,7 +75,7 @@ $BASELINES_TO_LAUNCH = @("ALL")
 
 # first launch of a new evaluation: $START_NEW_RUN = $true
 # later refill/status/download for same evaluation: $START_NEW_RUN = $false
-$START_NEW_RUN = $true
+$START_NEW_RUN = $false
 
 # Exact remote folder override. Leave empty normally.
 $RUN_ROOT_OVERRIDE = ""
