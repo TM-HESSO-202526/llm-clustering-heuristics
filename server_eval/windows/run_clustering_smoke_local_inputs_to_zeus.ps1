@@ -48,7 +48,7 @@ $ACTION = "status"
 $OBJECTIVE = "radius"
 $RUN_LABEL = "all270_5reps_by_heur"
 
-$REPS = 5
+$REPS = 45
 $MAX_HEURISTICS = 1000
 $MAX_INSTANCES = 1000
 $TIMEOUT_S = 600
@@ -62,7 +62,7 @@ $INSTANCE_IDS = "0,1,2,3,4,5,6,7,8,9"
 # ------------------------------
 # Only these cores are considered. The launcher removes cores already used by
 # currently running run_selected_clustering_smoke.py jobs.
-$CORES_TO_USE = @(0,1,2,3,4,5,6,7,8,9)
+$CORES_TO_USE = @(28)
 
 # Maximum number of NEW jobs to launch in this invocation.
 # Rerun the script later and it will fill newly-free cores.
@@ -71,7 +71,7 @@ $MAX_NEW_JOBS = 1
 # Use @("ALL") for all selected heuristics for the objective.
 # Or specify exact folder names, for example:
 # $HEURISTICS_TO_LAUNCH = @("01_candidate_037_best_quality", "02_candidate_028_same_run_faster")
-$HEURISTICS_TO_LAUNCH = @("01_hist_radius_best_124200_iter007")
+$HEURISTICS_TO_LAUNCH = @("09_regular_low_dim_nucleation_215015_iter047")
 
 
 # If true, create a new remote run folder and update LATEST.

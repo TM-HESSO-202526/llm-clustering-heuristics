@@ -39,7 +39,7 @@ $LOCAL_RESULTS_DIR = "D:\Users\antho\TM\server_eval_results"
 # status   = show progress for this objective/run label, do not launch
 # download = download current run root
 # ------------------------------
-$ACTION = "download"
+$ACTION = "status"
 
 # ------------------------------
 # Run settings

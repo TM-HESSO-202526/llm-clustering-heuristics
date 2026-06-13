@@ -60,13 +60,13 @@ $INSTANCE_IDS = "0,1,2,3,4,5,6,7,8,9"
 # ------------------------------
 # Parallel scheduling settings
 # ------------------------------
-$CORES_TO_USE = @(0,1,2,3,4,5,6,7,8,9)
-$MAX_NEW_JOBS = 10
+$CORES_TO_USE = @(16)
+$MAX_NEW_JOBS = 1
 
 # Use @("ALL") for all final baselines for the objective.
 # Or specify exact ids, for example:
 # $BASELINES_TO_LAUNCH = @("01_sklearn_kmeans_pp_ninit20", "02_sklearn_minibatch_kmeans")
-$BASELINES_TO_LAUNCH = @("ALL")
+$BASELINES_TO_LAUNCH = @("02_taillard_cpp_option1_pam")
 
 # first launch of a new evaluation: $START_NEW_RUN = $true
 # later refill/status/download for same evaluation: $START_NEW_RUN = $false
