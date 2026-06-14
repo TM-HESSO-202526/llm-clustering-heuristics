@@ -23,7 +23,7 @@ OBJECTIVE_BY_RUN = {
 CENTER_CONSTRAINT_BY_RUN = {
     "A": "free",
     "B": "snap_to_points",
-    "C": "snap_to_points",  # Taillard-style Run C: data-point medoid centers
+    "C": "snap_to_points",  # Run C uses data-point medoid centers
 }
 
 

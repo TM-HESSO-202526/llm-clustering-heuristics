@@ -10,7 +10,6 @@ SYSTEM_PROMPT = (
 )
 
 
-
 def _resolve_sampling_args(
     sampling_mode: bool | None = None,
     sampling_max_xp: int | None = None,
@@ -175,7 +174,6 @@ The evaluator does not apply any hidden sampling, medoid repair, local search, o
 Problem seen by your code:
 Given the full dataset X in R^d and a number p, return p centers that are elements of X.
 The final centers should be coordinates copied from data points in X.
-This keeps Run C in the Taillard-style medoid/data-point setting.
 
 Official evaluation objective on the full dataset:
 Each full-data point is assigned to its nearest selected center. For each cluster j, radius_j is the maximum Euclidean distance from selected center j to any full-data point assigned to it. The objective is:
@@ -206,7 +204,6 @@ Active objective: Run C — radius/volume covering objective with medoid/data-po
 Problem:
 Given n points X in R^d and a number p, return p centers that are elements of X.
 The final centers should be data points or coordinates copied from data points.
-This matches the Taillard kmedian/PAM/hybrid baseline setting for the hypersphere-volume objective.
 
 Evaluation objective:
 Each point is assigned to its nearest selected center. For each cluster j, define radius_j as
@@ -324,9 +321,6 @@ The official evaluator computes the active objective outside your code after you
 No hidden evaluator-side local search or repair is applied; the sampling and refinement logic must be implemented by your generated code.
 Do not hard-code any reference values.
 
-Diversity/novelty:
-Do not merely rename the previous algorithm or only tune constants.
-Prefer meaningful structural changes when redesigning, while still optimizing the active objective.
 
 Return format:
 # Name: <name of the algorithm>
@@ -373,9 +367,6 @@ The official evaluator computes the active objective outside your code.
 If your heuristic compares complete candidate center sets internally, keep the scoring logic in a helper function when possible and align it with the active objective above.
 Do not hard-code any reference values.
 
-Diversity/novelty:
-Do not merely rename the previous algorithm or only tune constants.
-Prefer meaningful structural changes when redesigning, while still optimizing the active objective.
 
 Return format:
 # Name: <name of the algorithm>
@@ -409,7 +400,6 @@ def compact_history(attempts_df: pd.DataFrame, limit: int) -> str:
             f"search_gap={gap} | selection_score={score} | error={err}"
         )
     return "\n".join(lines)
-
 
 
 def _banned_family_summary(objective_mode: str) -> str:
@@ -523,8 +513,6 @@ def family_focus_block(focus: dict | None) -> str:
     if constraint_lines:
         constraint_lines += "\n"
 
-    family_index = focus.get("family_index", "?")
-    total_families = focus.get("total_families", "?")
     call_inside = focus.get("call_inside_family", "?")
     calls_per_family = focus.get("calls_per_family", "?")
 
@@ -544,7 +532,6 @@ Family objective:
 Family description from launcher:
 {focus.get('description', '')}
 
-Family block: {family_index}/{total_families}
 Call inside this family block: {call_inside}/{calls_per_family}
 
 Strict constraints:
@@ -554,8 +541,7 @@ Strict constraints:
 - Do not switch to the over-generated default family for the active objective.
 - Bounded refinement is allowed only after the family-specific construction and must not be the sole source of quality.
 - Keep the method scalable and robust for the active benchmark, especially in higher-dimensional d=4 cases when they appear.
-
-Only use the local parent and local history from this same family block. Ignore successful heuristics from other family blocks as mechanisms to preserve. At the end of the run, the backend will compare the best candidate from each family separately.""".strip()
+""".strip()
 
 
 def _redesign_instruction(

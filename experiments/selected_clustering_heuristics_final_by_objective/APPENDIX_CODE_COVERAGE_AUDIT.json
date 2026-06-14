@@ -1,5 +1,0 @@
-{
-  "experiments/selected_clustering_heuristics_final_by_objective/SSE_free_centers": 10,
-  "experiments/selected_clustering_heuristics_final_by_objective/P_MEDIAN_data_point_centers": 8,
-  "experiments/selected_clustering_heuristics_final_by_objective/RADIUS_VOLUME_data_point_centers": 9
-}
