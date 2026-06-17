@@ -1,6 +1,6 @@
 # Data
 
-This folder contains the input instance manifest and the expected local data layout.
+This folder contains the input instances for the LLM loop and the expected local data layout.
 
 Recommended layout:
 
@@ -14,4 +14,4 @@ data/
 └── processed/
 ```
 
-The raw benchmark archive and reference files are not bundled in this final repository. Keep them outside Git unless redistribution has been explicitly cleared, then provide them locally through `data/raw/` or the paths passed to the evaluation scripts.
+For now the raw benchmark archive and reference files are not bundled in this final repository, until redistribution has been explicitly cleared.

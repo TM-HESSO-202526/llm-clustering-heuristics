@@ -8,7 +8,7 @@ This folder contains the cleaned final Python evaluator for the selected cluster
 python server_eval/run_selected_clustering_eval.py --help
 ```
 
-The script evaluates the selected SSE, p-median, and radius-volume heuristic folders under `experiments/selected_clustering_heuristics_final_by_objective/`. It writes raw per-instance results and summary CSV files to the selected output directory.
+The script evaluates the selected SSE, p-median, and radius-volume heuristic files under `experiments/selected_clustering_heuristics_final_by_objective/`. It writes raw per-instance results and summary CSV files to the selected output directory.
 
 ## Supporting baseline evaluator
 

@@ -1,4 +1,0 @@
-candidate_id,split,instance,n,p,d,instance_id,ref_cost,valid,error,runtime_s,cost,gap_ref_pct,sse,dist_sum,radius_power_cost,max_radius,nonempty_clusters,center_count,sampling_mode,sampling_mode_label,sampling_sample_size,sampling_max_xp,sampling_repair_full,run_c_d1_sampling_mode,run_c_d1_mode_label,run_c_d1_sample_size,run_c_d1_max_xp,run_c_d1_repair_full
-4,probe,cluster_tai10000_100_2_1,10000,100,2,1,128852.645642,True,,11.419409036636353,133292.08484728393,3.4453613142087267,2165131.0,133292.08484728393,,,,100,False,off,,10,False,False,not_run_c,,10,False
-4,probe,cluster_tai01600_040_3_1,1600,40,3,1,21918.564045,True,,0.3987298011779785,23129.34805061554,5.524011532551745,390360.0,23129.34805061554,,,,40,False,off,,10,False,False,not_run_c,,10,False
-4,probe,cluster_tai04900_070_4_1,4900,70,4,1,79187.300778,True,,3.312767744064331,81333.22911892935,2.709940002811068,1540599.0,81333.22911892935,,,,70,False,off,,10,False,False,not_run_c,,10,False

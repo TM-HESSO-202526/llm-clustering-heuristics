@@ -209,26 +209,51 @@ def discover_heuristics(selected_root: Path, objective: str, max_heuristics: Opt
         "radius": "RADIUS",
     }[objective]
 
-    code_paths = sorted(selected_root.glob("**/heuristic.py"))
-    if not code_paths:
-        # Fallback: original copied files if heuristic.py aliases are absent.
-        code_paths = sorted(p for p in selected_root.glob("**/*.py") if "__pycache__" not in str(p))
+    def _id_from_code_path(code_path: Path) -> str:
+        m = re.match(r"^([SPR]\d+)_heuristic\.py$", code_path.name)
+        if m:
+            return m.group(1)
+        if code_path.name == "heuristic.py":
+            m = re.match(r"^([SPR]\d+)(?:_|$)", code_path.parent.name)
+            if m:
+                return m.group(1)
+            return code_path.parent.name
+        m = re.match(r"^([SPR]\d+)(?:_|$)", code_path.stem)
+        if m:
+            return m.group(1)
+        return code_path.stem
+
+    # Final submission layout: objective_folder/ID_heuristic.py.
+    # Older nested layouts are also accepted for backward compatibility.
+    code_paths = sorted(
+        p for p in selected_root.glob("**/*.py")
+        if "__pycache__" not in str(p) and p.name != "__init__.py"
+    )
     specs: List[HeuristicSpec] = []
     for code_path in code_paths:
         rel = code_path.relative_to(selected_root)
         parts = rel.parts
-        objective_folder = parts[0] if len(parts) >= 2 else ""
+        objective_folder = parts[0] if len(parts) >= 2 else selected_root.name
         if objective_hint not in objective_folder.upper():
             continue
         heuristic_dir = code_path.parent
-        heuristic_id = heuristic_dir.name
+        heuristic_id = _id_from_code_path(code_path)
         specs.append(HeuristicSpec(heuristic_id=heuristic_id, heuristic_dir=heuristic_dir, code_path=code_path, objective_folder=objective_folder))
+
     # If user passed directly the objective folder, allow that too.
     if not specs:
         for code_path in code_paths:
             heuristic_dir = code_path.parent
-            specs.append(HeuristicSpec(heuristic_id=heuristic_dir.name, heuristic_dir=heuristic_dir, code_path=code_path, objective_folder=selected_root.name))
-    specs.sort(key=lambda h: h.heuristic_id)
+            heuristic_id = _id_from_code_path(code_path)
+            specs.append(HeuristicSpec(heuristic_id=heuristic_id, heuristic_dir=heuristic_dir, code_path=code_path, objective_folder=selected_root.name))
+
+    def _heuristic_sort_key(h: HeuristicSpec):
+        m = re.match(r"([SPR])(\d+)(?:_|$)", h.heuristic_id)
+        if m:
+            return (m.group(1), int(m.group(2)), h.heuristic_id)
+        return (h.heuristic_id,)
+
+    specs.sort(key=_heuristic_sort_key)
     if max_heuristics is not None:
         specs = specs[: int(max_heuristics)]
     if not specs:
