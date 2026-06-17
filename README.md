@@ -32,7 +32,7 @@ Without a Groq key, the notebook can still be inspected, but the LLM-generation 
 - `configs/` — objective-specific generation configurations for SSE, p-median, and radius-volume runs.
 - `notebooks/00_unified_colab_launcher.ipynb` — clean Colab launcher for the clustering generation pipeline.
 - `scripts/` — supporting scripts used by the generation/reference workflow.
-- `docs/` — methodology notes and exact prompt-reference notebooks.
+- `docs/` — exact prompt-reference notebook.
 - `experiments/selected_clustering_heuristics_final_by_objective/` — selected heuristic Python files grouped by objective and named with the report IDs.
 - `server_eval/run_selected_clustering_eval.py` — final Python evaluator for selected clustering heuristics.
 - `server_eval/run_external_clustering_baselines.py` — supporting baseline evaluator used for traditional comparison methods.
