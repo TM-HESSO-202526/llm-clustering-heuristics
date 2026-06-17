@@ -1,3 +1,4 @@
+Report ID: P1
 p-median candidate 6
 
 Objective folder: P_MEDIAN_data_point_centers
@@ -15,5 +16,5 @@ Mechanism assigned: k-means++/weighted random seeding + farthest-first spread
 Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; local refinement
 
 Original code path: Runs_1/Runs/Runs semaine 12/2 - Run B 1+1/__unzipped__llm_clustering_final_pmedian_20260508_094013/llm_clustering_final_pmedian_20260508_094013/codes/iter_006_9aaa459f60bce6d0581a.py
-Copied code file: iter_006_9aaa459f60bce6d0581a.py
+Copied code file: P1_iter_006_9aaa459f60bce6d0581a.py
 Code SHA1: 83ca0446f1ab1bceb35eb8183302322151e130b1

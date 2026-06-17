@@ -1,3 +1,4 @@
+Report ID: R1
 Run C historical radius best iter7
 
 Objective folder: RADIUS_VOLUME_data_point_centers
@@ -24,6 +25,6 @@ Mechanism assigned: distance/farthest medoid selection with radius-aware minimax
 Features: radius_covering|medoid_snap|historical_avoidance|d4_search
 
 Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260526_124200/codes/iter_007_45011f48b3d04bd28766.py
-Copied code file: iter_007_45011f48b3d04bd28766.py
+Copied code file: R1_iter_007_45011f48b3d04bd28766.py
 Copied detail files: search_detail_iter_007.csv, probe_detail_iter_007.csv
 Code SHA1: 521bdc7f5e603d2edc0809a1cc88632163e6d5d0

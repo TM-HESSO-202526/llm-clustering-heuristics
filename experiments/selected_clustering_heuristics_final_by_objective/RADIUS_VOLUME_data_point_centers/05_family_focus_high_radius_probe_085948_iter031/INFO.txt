@@ -1,3 +1,4 @@
+Report ID: R4
 Run C FF high-radius repair iter31
 
 Objective folder: RADIUS_VOLUME_data_point_centers
@@ -24,6 +25,6 @@ Mechanism assigned: high-radius cluster splitting and selected-medoid repair
 Features: high_radius_repair|nucleation|family_focus|d4_search
 
 Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260527_085948/codes/iter_031_d59bf5d1ea08cde0a754.py
-Copied code file: iter_031_d59bf5d1ea08cde0a754.py
+Copied code file: R4_iter_031_d59bf5d1ea08cde0a754.py
 Copied detail files: search_detail_iter_031.csv, probe_detail_iter_031.csv
 Code SHA1: e085218baa36b564ef60b3594f15b0644df5e693

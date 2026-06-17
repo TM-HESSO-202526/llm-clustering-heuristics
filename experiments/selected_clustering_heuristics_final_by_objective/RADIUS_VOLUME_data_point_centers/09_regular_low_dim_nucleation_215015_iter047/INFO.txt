@@ -1,3 +1,4 @@
+Report ID: R8
 Run C regular low-dimensional nucleation iter47
 
 Objective folder: RADIUS_VOLUME_data_point_centers
@@ -24,6 +25,6 @@ Mechanism assigned: enhanced volume reduction / nucleation with adaptive replace
 Features: nucleation|radius_volume|regular_mode|lower_dim
 
 Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260517_215015/codes/iter_047_e67749c45c369c012985.py
-Copied code file: iter_047_e67749c45c369c012985.py
+Copied code file: R8_iter_047_e67749c45c369c012985.py
 Copied detail files: search_detail_iter_047.csv, probe_detail_iter_047.csv
 Code SHA1: bf360ec06346a9db05d0d285e30af54cbbcab5e5

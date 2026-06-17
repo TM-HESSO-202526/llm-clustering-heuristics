@@ -1,3 +1,4 @@
+Report ID: R2
 Run C historical recursive/high-radius repair iter6
 
 Objective folder: RADIUS_VOLUME_data_point_centers
@@ -24,6 +25,6 @@ Mechanism assigned: high-radius cluster repair with recursive/decomposition-like
 Features: recursive_partition|radius_repair|historical_avoidance|d4_search
 
 Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260526_110223/codes/iter_006_bae6b10e042809979a5c.py
-Copied code file: iter_006_bae6b10e042809979a5c.py
+Copied code file: R2_iter_006_bae6b10e042809979a5c.py
 Copied detail files: search_detail_iter_006.csv, probe_detail_iter_006.csv
 Code SHA1: 43e05ce656eedbfc0c5247c00ea431d6e0bf6d8d

@@ -1,3 +1,4 @@
+Report ID: S4
 SSE gradient/momentum candidate 13
 
 Objective folder: SSE_free_centers
@@ -15,5 +16,5 @@ Mechanism assigned: gradient/momentum continuous + farthest-first spread
 Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; gradient/continuous optimization
 
 Original code path: TM-20260520T134755Z-3-001_1/TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260516_105101/codes/iter_013_cdb12aa95b7ba4b22943.py
-Copied code file: iter_013_cdb12aa95b7ba4b22943.py
+Copied code file: S4_iter_013_cdb12aa95b7ba4b22943.py
 Code SHA1: dd67991bc09b3824d96b0999cd70fabdb2d95966

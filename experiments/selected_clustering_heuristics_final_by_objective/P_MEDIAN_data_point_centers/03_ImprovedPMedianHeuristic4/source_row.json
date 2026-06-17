@@ -14,7 +14,7 @@
   "source_name": "llm_final_candidate_summary.csv",
   "source_dir": "Runs_1/Runs/Runs semaine 13/19 - Rerun run B 1+1 with PAM prompt/__unzipped__llm_clustering_runB_pmedian_D2_numpy_only_medoid_refinement_hint_id3_8calls_2026/llm_clustering_runB_pmedian_D2_numpy_only_medoid_refinement_hint_id3_8calls_20260514_124000/rmode_quarter_p",
   "original_code_file": "Runs_1/Runs/Runs semaine 13/19 - Rerun run B 1+1 with PAM prompt/__unzipped__llm_clustering_runB_pmedian_D2_numpy_only_medoid_refinement_hint_id3_8calls_2026/llm_clustering_runB_pmedian_D2_numpy_only_medoid_refinement_hint_id3_8calls_20260514_124000/rmode_quarter_p/codes/iter_005_b37cc2250292527a3b99.py",
-  "copied_code_file": "iter_005_b37cc2250292527a3b99.py",
+  "copied_code_file": "P3_iter_005_b37cc2250292527a3b99.py",
   "code_sha1": "9b061d0ff84b9a8be48cddcb7be5ba4f750d8e2d",
   "mechanism_assigned": "medoid/PAM replacement + recursive/coarse-to-fine split + k-means++/weighted random seeding + farthest-first spread",
   "feature_list": "lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; recursive split/decomposition; sampling/coreset; local refinement"

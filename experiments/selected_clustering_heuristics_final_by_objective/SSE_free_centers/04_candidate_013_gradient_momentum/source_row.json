@@ -14,7 +14,7 @@
   "source_name": "llm_final_candidate_summary.csv",
   "source_dir": "TM-20260520T134755Z-3-001_1/TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260516_105101",
   "original_code_file": "TM-20260520T134755Z-3-001_1/TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260516_105101/codes/iter_013_cdb12aa95b7ba4b22943.py",
-  "copied_code_file": "iter_013_cdb12aa95b7ba4b22943.py",
+  "copied_code_file": "S4_iter_013_cdb12aa95b7ba4b22943.py",
   "code_sha1": "dd67991bc09b3824d96b0999cd70fabdb2d95966",
   "mechanism_assigned": "gradient/momentum continuous + farthest-first spread",
   "feature_list": "lloyd/kmeans assignment-update; farthest-first/Gonzalez; gradient/continuous optimization"

@@ -1,3 +1,4 @@
+Report ID: S3
 SSE edited candidate 28
 
 Objective folder: SSE_free_centers
@@ -15,5 +16,5 @@ Mechanism assigned: noise/annealing perturbation + k-means++/weighted random see
 Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; noise/restart/annealing; local refinement
 
 Original code path: Runs_1/Runs/Runs semaine 12/4 - Run A 1+1 edited/__unzipped__llm_clustering_final_sse_20260508_125728/llm_clustering_final_sse_20260508_125728/codes/iter_028_e1054cdd0bb4ec67a203.py
-Copied code file: iter_028_e1054cdd0bb4ec67a203.py
+Copied code file: S3_iter_028_e1054cdd0bb4ec67a203.py
 Code SHA1: 848c1b469d06895ed153819411777caaa97808ea

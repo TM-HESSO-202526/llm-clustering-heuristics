@@ -1,15 +1,16 @@
+Report ID: S7
 Run A historical recursive strong partial iter4
 
 Objective folder: SSE_free_centers
 Folder: 07_hist_recursive_strong_partial_145520_iter004
-Reason selected: Strongest recursive/hierarchical partitioning signal from historical-family-avoidance discovery; very good where valid, but p=100 probe timed out.
+Reason selected: Strong incremental farthest-first relocation candidate; useful as a quality/runtime comparison for the SSE family.
 
 Run id: llm_clustering_unified_ABC_sse_20260525_145520
 Iteration: 4
 Algorithm name: Hierarchical Partition-Based Clustering
 Objective: sse
 Center constraint: free
-Inferred family: recursive_partition
+Inferred family: incremental_farthest_first_relocation
 Focus family: 
 
 Search gap reference mean pct: 5.553796729333402
@@ -20,10 +21,10 @@ Probe valid: False
 Search runtime mean seconds: 19.742642561594646
 Probe runtime mean seconds: 30.024741291999817
 
-Mechanism assigned: recursive/hierarchical geometric partitioning with SSE-compatible refinement
-Features: recursive_partition|historical_avoidance
+Mechanism assigned: incremental farthest-first center addition with repeated assignment/update relocation
+Features: farthest_first|assignment_update|historical_avoidance
 
 Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260525_145520/codes/iter_004_4b60f1ea641638851762.py
-Copied code file: iter_004_4b60f1ea641638851762.py
+Copied code file: S7_iter_004_4b60f1ea641638851762.py
 Copied detail files: search_detail_iter_004.csv, probe_detail_iter_004.csv
 Code SHA1: d275b7844a8c875483309f909262b7d309e1e58c

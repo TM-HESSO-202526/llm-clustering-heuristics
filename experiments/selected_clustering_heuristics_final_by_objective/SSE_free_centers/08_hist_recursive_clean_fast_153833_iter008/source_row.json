@@ -31,7 +31,7 @@
   "source_archive": "TM-20260527T101559Z-3-001.zip",
   "attempts_csv_inside_archive": "TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260525_153833/llm_attempts.csv",
   "original_code_file_inside_archive": "TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260525_153833/codes/iter_008_5e0c9eace80e945ac05b.py",
-  "copied_code_file": "iter_008_5e0c9eace80e945ac05b.py",
+  "copied_code_file": "S8_iter_008_5e0c9eace80e945ac05b.py",
   "copied_detail_files": [
     "search_detail_iter_008.csv",
     "probe_detail_iter_008.csv"

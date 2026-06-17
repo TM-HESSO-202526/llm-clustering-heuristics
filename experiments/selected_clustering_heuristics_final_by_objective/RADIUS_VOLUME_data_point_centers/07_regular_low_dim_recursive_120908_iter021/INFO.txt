@@ -1,3 +1,4 @@
+Report ID: R6
 Run C regular low-dimensional recursive repair iter21
 
 Objective folder: RADIUS_VOLUME_data_point_centers
@@ -24,6 +25,6 @@ Mechanism assigned: radius-aware medoid replacement with recursive-style repair
 Features: recursive_partition|radius_repair|regular_mode|lower_dim
 
 Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260518_120908/codes/iter_021_0ff4000dd65662be6790.py
-Copied code file: iter_021_0ff4000dd65662be6790.py
+Copied code file: R6_iter_021_0ff4000dd65662be6790.py
 Copied detail files: search_detail_iter_021.csv, probe_detail_iter_021.csv
 Code SHA1: 9db3c20b1cbc2f1639bff21a95ea179d394e0c53

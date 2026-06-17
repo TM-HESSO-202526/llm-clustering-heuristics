@@ -2,13 +2,13 @@
 """
 Final evaluator for external/traditional clustering baselines.
 
-It mirrors server_eval/run_selected_clustering_smoke.py artifacts and protocol:
+It mirrors server_eval/run_selected_clustering_eval.py artifacts and protocol:
 - one output directory per baseline job;
 - one row per objective × baseline × instance × repetition;
 - same references and objective values as the selected-heuristic evaluator;
 - same summary_by_heuristic.csv, summary_by_instance_size.csv, complexity_fit.csv.
 
-Supported baselines are intentionally restricted to the final comparison set:
+Supported baselines are intentionally restricted to the final redistributable comparison set:
 SSE:
   01_sklearn_kmeans_pp_ninit20
   02_sklearn_minibatch_kmeans
@@ -18,17 +18,6 @@ p-median:
   02_python_kmedoids_fastpam1
   03_python_kmedoids_fasterpam
   04_clara_like_sampled_pam
-radius:
-  01_taillard_cpp_option0_kmeans_like
-  02_taillard_cpp_option1_pam
-  03_taillard_cpp_option2_hybrid_sample_pam_refinement
-radius_transfer:
-  01_radius_from_kmeans_pp_ninit20_snap
-  02_radius_from_minibatch_kmeans_snap
-  03_radius_from_bisecting_kmeans_snap
-  04_radius_from_fastpam1
-  05_radius_from_fasterpam
-  06_radius_from_clara_like_sampled_pam
 """
 from __future__ import annotations
 
@@ -39,10 +28,8 @@ import math
 import os
 import platform
 import socket
-import subprocess
 import sys
 import time
-import tempfile
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
@@ -51,7 +38,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 # Make the repository root importable when this file is executed as:
 #   python server_eval/run_external_clustering_baselines.py
 # Without this, Python puts server_eval/ on sys.path instead of the repo root,
-# and imports such as server_eval.run_selected_clustering_smoke can fail on Zeus.
+# and imports such as server_eval.run_selected_clustering_eval can fail on Zeus.
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -60,7 +47,7 @@ import numpy as np
 import pandas as pd
 
 # Reuse the selected-heuristic evaluator primitives so baseline artifacts are comparable.
-from server_eval.run_selected_clustering_smoke import (
+from server_eval.run_selected_clustering_eval import (
     InstanceSpec,
     batched_nearest_indices,
     discover_instances,
@@ -100,19 +87,6 @@ BASELINES: Dict[str, List[BaselineSpec]] = {
         BaselineSpec("02_python_kmedoids_fastpam1", "pmedian", "python-kmedoids", "FastPAM1 from python-kmedoids."),
         BaselineSpec("03_python_kmedoids_fasterpam", "pmedian", "python-kmedoids", "FasterPAM from python-kmedoids."),
         BaselineSpec("04_clara_like_sampled_pam", "pmedian", "clara-like", "CLARA-like sampled medoid baseline using sample PAM/FasterPAM and full-data evaluation."),
-    ],
-    "radius": [
-        BaselineSpec("01_taillard_cpp_option0_kmeans_like", "radius", "taillard_cpp", "Taillard C++ option 0: k-means/k-median-like refinement."),
-        BaselineSpec("02_taillard_cpp_option1_pam", "radius", "taillard_cpp", "Taillard C++ option 1: PAM."),
-        BaselineSpec("03_taillard_cpp_option2_hybrid_sample_pam_refinement", "radius", "taillard_cpp", "Taillard C++ option 2: sample PAM plus k-means/k-median-like refinement."),
-    ],
-    "radius_transfer": [
-        BaselineSpec("01_radius_from_kmeans_pp_ninit20_snap", "radius_transfer", "sse_transfer", "KMeans++ n_init=20 centers snapped to nearest data points, evaluated with radius-volume objective."),
-        BaselineSpec("02_radius_from_minibatch_kmeans_snap", "radius_transfer", "sse_transfer", "MiniBatchKMeans centers snapped to nearest data points, evaluated with radius-volume objective."),
-        BaselineSpec("03_radius_from_bisecting_kmeans_snap", "radius_transfer", "sse_transfer", "BisectingKMeans centers snapped to nearest data points, evaluated with radius-volume objective."),
-        BaselineSpec("04_radius_from_fastpam1", "radius_transfer", "pmedian_transfer", "FastPAM1 medoids evaluated with radius-volume objective."),
-        BaselineSpec("05_radius_from_fasterpam", "radius_transfer", "pmedian_transfer", "FasterPAM medoids evaluated with radius-volume objective."),
-        BaselineSpec("06_radius_from_clara_like_sampled_pam", "radius_transfer", "pmedian_transfer", "CLARA-like sampled PAM medoids evaluated with radius-volume objective."),
     ],
 }
 
@@ -329,132 +303,8 @@ def _pmedian_centers(baseline_id: str, X: np.ndarray, p: int, seed: int) -> np.n
 
 
 
-def snap_centers_to_nearest_points(X: np.ndarray, C: np.ndarray) -> np.ndarray:
-    """Snap free Euclidean centers to nearest distinct input points.
 
-    This is used for transferring SSE-style free-center baselines to the
-    radius-volume setting, where the selected-center heuristics are interpreted
-    as data-point centers. The distinctness repair avoids losing centers if two
-    free centers snap to the same entity.
-    """
-    X = np.asarray(X, dtype=float)
-    C = np.asarray(C, dtype=float)
-    chosen: List[int] = []
-    used = set()
-    for c in C:
-        d2 = np.sum((X - c[None, :]) ** 2, axis=1)
-        order = np.argsort(d2, kind="mergesort")
-        pick = None
-        for idx in order:
-            ii = int(idx)
-            if ii not in used:
-                pick = ii
-                break
-        if pick is None:
-            pick = int(order[0])
-        chosen.append(pick)
-        used.add(pick)
-    return X[np.asarray(chosen, dtype=int)].copy()
-
-
-def _radius_transfer_centers(baseline_id: str, X: np.ndarray, p: int, seed: int) -> Tuple[np.ndarray, str]:
-    """Produce centers from A/B baselines and evaluate them under objective C.
-
-    SSE baselines produce free Euclidean centers, so they are snapped to nearest
-    input points before radius-volume evaluation. p-median baselines already
-    produce data-point centers.
-    """
-    if baseline_id == "01_radius_from_kmeans_pp_ninit20_snap":
-        C_free = _sse_sklearn_centers("01_sklearn_kmeans_pp_ninit20", X, p, seed)
-        return snap_centers_to_nearest_points(X, C_free), "source=sse_kmeans_pp_ninit20; snapped_to_data_points"
-    if baseline_id == "02_radius_from_minibatch_kmeans_snap":
-        C_free = _sse_sklearn_centers("02_sklearn_minibatch_kmeans", X, p, seed)
-        return snap_centers_to_nearest_points(X, C_free), "source=sse_minibatch_kmeans; snapped_to_data_points"
-    if baseline_id == "03_radius_from_bisecting_kmeans_snap":
-        C_free = _sse_sklearn_centers("03_sklearn_bisecting_kmeans", X, p, seed)
-        return snap_centers_to_nearest_points(X, C_free), "source=sse_bisecting_kmeans; snapped_to_data_points"
-    if baseline_id == "04_radius_from_fastpam1":
-        C = _pmedian_centers("02_python_kmedoids_fastpam1", X, p, seed)
-        return C, "source=pmedian_fastpam1; centers_are_data_points"
-    if baseline_id == "05_radius_from_fasterpam":
-        C = _pmedian_centers("03_python_kmedoids_fasterpam", X, p, seed)
-        return C, "source=pmedian_fasterpam; centers_are_data_points"
-    if baseline_id == "06_radius_from_clara_like_sampled_pam":
-        C = _pmedian_centers("04_clara_like_sampled_pam", X, p, seed)
-        return C, "source=pmedian_clara_like_sampled_pam; centers_are_data_points"
-    raise ValueError(f"Unsupported radius-transfer baseline {baseline_id}")
-
-
-def radius_baseline_option(baseline_id: str) -> int:
-    return {
-        "01_taillard_cpp_option0_kmeans_like": 0,
-        "02_taillard_cpp_option1_pam": 1,
-        "03_taillard_cpp_option2_hybrid_sample_pam_refinement": 2,
-    }[baseline_id]
-
-
-def _write_taillard_radius_input(X: np.ndarray, inst: InstanceSpec) -> Path:
-    """Write a temporary instance file in the simple format expected by the Taillard C++ code.
-
-    The cluster_tai CSV files are parsed robustly by the Python evaluator, but the C++
-    baseline expects:
-        n p d dummy dummy
-        x_1 ... x_d
-        ...
-    Passing the original CSV directly can fail depending on headers/separators. This
-    wrapper makes the C++ parser independent of the source CSV layout.
-    """
-    tmp = tempfile.NamedTemporaryFile(
-        mode="w",
-        encoding="utf-8",
-        prefix=f"taillard_radius_{inst.name}_",
-        suffix=".dat",
-        delete=False,
-    )
-    path = Path(tmp.name)
-    try:
-        tmp.write(f"{inst.n} {inst.p} {inst.d} 0 0\n")
-        Xi = np.rint(np.asarray(X, dtype=float)).astype(np.int64)
-        if Xi.shape != (inst.n, inst.d):
-            raise ValueError(f"Expected X shape {(inst.n, inst.d)} for {inst.name}, got {Xi.shape}")
-        for row in Xi:
-            tmp.write(" ".join(str(int(v)) for v in row) + "\n")
-    finally:
-        tmp.close()
-    return path
-
-
-def run_taillard_cpp_radius(taillard_exe: Path, X: np.ndarray, inst: InstanceSpec, option: int, seed: int, timeout_s: float) -> Tuple[float, float, str]:
-    if taillard_exe is None or not Path(taillard_exe).exists():
-        raise FileNotFoundError(f"Missing Taillard radius executable: {taillard_exe}")
-    tmp_path = _write_taillard_radius_input(X, inst)
-    try:
-        cmd = [str(taillard_exe), str(tmp_path), str(option), str(seed)]
-        t0 = time.perf_counter()
-        proc = subprocess.run(cmd, text=True, capture_output=True, timeout=float(timeout_s) if timeout_s else None)
-        wall = time.perf_counter() - t0
-        out = (proc.stdout or "") + "\n" + (proc.stderr or "")
-        if proc.returncode != 0:
-            raise RuntimeError(f"Taillard radius executable failed with code {proc.returncode}. Output:\n{out[-2000:]}")
-        cost = None
-        runtime = None
-        for line in out.splitlines():
-            line = line.strip()
-            if line.startswith("COST "):
-                cost = float(line.split()[1])
-            elif line.startswith("TIME_S "):
-                runtime = float(line.split()[1])
-        if cost is None:
-            raise RuntimeError(f"Could not parse COST from Taillard output:\n{out[-2000:]}")
-        return float(cost), float(runtime if runtime is not None else wall), out[-4000:]
-    finally:
-        try:
-            tmp_path.unlink(missing_ok=True)
-        except Exception:
-            pass
-
-
-def run_baseline(spec: BaselineSpec, X: np.ndarray, inst: InstanceSpec, rep: int, seed: int, timeout_s: float, taillard_exe: Optional[Path]) -> Tuple[float, float, str]:
+def run_baseline(spec: BaselineSpec, X: np.ndarray, inst: InstanceSpec, rep: int, seed: int, timeout_s: float) -> Tuple[float, float, str]:
     """Return objective_value, runtime_s, note."""
     t0 = time.perf_counter()
     if spec.objective == "sse":
@@ -468,18 +318,6 @@ def run_baseline(spec: BaselineSpec, X: np.ndarray, inst: InstanceSpec, rep: int
             C = _pmedian_centers(spec.baseline_id, X, inst.p, seed)
         runtime_s = time.perf_counter() - t0
         return objective_value(X, C, objective="pmedian", batch_size=1024), runtime_s, "centers_are_data_points"
-
-    if spec.objective == "radius_transfer":
-        with timeout_guard(timeout_s):
-            C, note = _radius_transfer_centers(spec.baseline_id, X, inst.p, seed)
-        runtime_s = time.perf_counter() - t0
-        val = objective_value(X, C, objective="radius", batch_size=1024)
-        return val, runtime_s, note
-
-    if spec.objective == "radius":
-        option = radius_baseline_option(spec.baseline_id)
-        cost, runtime_s, cpp_out = run_taillard_cpp_radius(Path(taillard_exe), X, inst, option=option, seed=seed, timeout_s=timeout_s)
-        return cost, runtime_s, f"taillard_option={option}; cpp_output_tail={cpp_out.replace(chr(10), ' | ')[:1500]}"
 
     raise ValueError(spec.objective)
 
@@ -499,7 +337,7 @@ def write_baseline_registry(out_dir: Path) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Run external clustering baselines on cluster_tai instances.")
-    ap.add_argument("--objective", choices=["sse", "pmedian", "radius", "radius_transfer"], required=True)
+    ap.add_argument("--objective", choices=["sse", "pmedian"], required=True)
     ap.add_argument("--baselines", type=str, default="ALL", help="Comma-separated baseline ids or ALL.")
     ap.add_argument("--cluster-zip", type=Path, default=Path("data/raw/cluster_tai.zip"))
     ap.add_argument("--extract-dir", type=Path, default=Path("/tmp/cluster_tai_instances_final_eval"))
@@ -515,9 +353,8 @@ def main() -> int:
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--global-seed", type=int, default=12345)
     ap.add_argument("--flush-every", type=int, default=1)
-    ap.add_argument("--taillard-exe", type=Path, default=None, help="Compiled Taillard radius baseline executable, required for radius.")
     args = ap.parse_args()
-    effective_objective = "radius" if args.objective == "radius_transfer" else args.objective
+    effective_objective = args.objective
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     write_baseline_registry(args.output_dir)
@@ -532,15 +369,13 @@ def main() -> int:
         "python": sys.version,
         "start_time": time.strftime("%Y-%m-%d %H:%M:%S"),
         "loop_order": "rep_outer_then_baseline_then_instance",
-        "artifact_schema": "same_as_run_selected_clustering_smoke_with_heuristic_id_as_baseline_id",
+        "artifact_schema": "same_as_run_selected_clustering_eval_with_heuristic_id_as_baseline_id",
         "effective_objective_for_value_and_reference": effective_objective,
     })
     (args.output_dir / "run_config.json").write_text(json.dumps(run_config, indent=2), encoding="utf-8")
 
     if not args.cluster_zip.exists():
         raise FileNotFoundError(f"cluster_tai.zip not found: {args.cluster_zip}")
-    if args.objective == "radius" and (args.taillard_exe is None or not args.taillard_exe.exists()):
-        raise FileNotFoundError("--taillard-exe is required and must exist for radius baselines.")
 
     instance_root = extract_zip_if_needed(args.cluster_zip, args.extract_dir)
     instances = filter_instances(
@@ -625,7 +460,7 @@ def main() -> int:
                         X = read_points_csv(inst)
                         instance_cache[inst.name] = X
                     try:
-                        val, runtime_s, note = run_baseline(b, X, inst, rep, seed, args.timeout_s, args.taillard_exe)
+                        val, runtime_s, note = run_baseline(b, X, inst, rep, seed, args.timeout_s, None)
                     except (BaselineTimeoutError, subprocess.TimeoutExpired) as exc:
                         runtime_s = time.perf_counter() - t0
                         row.update({

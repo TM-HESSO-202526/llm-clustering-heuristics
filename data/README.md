@@ -1,6 +1,6 @@
 # Data
 
-This folder contains the input instance manifest and, optionally, the raw clustering instances.
+This folder contains the input instance manifest and the expected local data layout.
 
 Recommended layout:
 
@@ -8,16 +8,10 @@ Recommended layout:
 data/
 ├── manifest.csv
 ├── raw/
-│   ├── cluster_tai00400_020_2_0.csv
-│   ├── cluster_tai01600_040_2_0.csv
+│   ├── cluster_tai.zip or extracted cluster_tai*.csv files
+│   ├── kmeans.res
 │   └── ...
 └── processed/
 ```
 
-For Colab runs, the default configs also look in Google Drive for:
-
-- `cluster_tai.zip`
-- `kmeans.res`
-- the Run C radius-reference zip/CSV
-
-If the input files are large or cannot be redistributed, keep them out of Git and document their expected location here.
+The raw benchmark archive and reference files are not bundled in this final repository. Keep them outside Git unless redistribution has been explicitly cleared, then provide them locally through `data/raw/` or the paths passed to the evaluation scripts.

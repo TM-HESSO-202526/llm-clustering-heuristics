@@ -1,3 +1,4 @@
+Report ID: R5
 Run C regular low-dimensional radius-covering iter11
 
 Objective folder: RADIUS_VOLUME_data_point_centers
@@ -24,6 +25,6 @@ Mechanism assigned: radius-volume covering with center replacement and adaptive 
 Features: radius_covering|regular_mode|lower_dim
 
 Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_radius_20260517_191550/codes/iter_011_8f031a2256dc2465bf8b.py
-Copied code file: iter_011_8f031a2256dc2465bf8b.py
+Copied code file: R5_iter_011_8f031a2256dc2465bf8b.py
 Copied detail files: search_detail_iter_011.csv, probe_detail_iter_011.csv
 Code SHA1: 728195817da37c710051f7bb6d5bb7f38dcf7b4a

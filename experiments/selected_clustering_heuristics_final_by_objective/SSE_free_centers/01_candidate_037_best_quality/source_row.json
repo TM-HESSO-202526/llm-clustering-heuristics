@@ -14,7 +14,7 @@
   "source_name": "llm_final_candidate_summary.csv",
   "source_dir": "Runs_1/Runs/Runs semaine 12/1 - Run A 1+1/__unzipped__llm_clustering_final_sse_20260506_184835/llm_clustering_final_sse_20260506_184835",
   "original_code_file": "Runs_1/Runs/Runs semaine 12/1 - Run A 1+1/__unzipped__llm_clustering_final_sse_20260506_184835/llm_clustering_final_sse_20260506_184835/codes/iter_037_485de21a19ccc6c83dc8.py",
-  "copied_code_file": "iter_037_485de21a19ccc6c83dc8.py",
+  "copied_code_file": "S1_iter_037_485de21a19ccc6c83dc8.py",
   "code_sha1": "73151605d13a46f56c1f7eba37121972f60a8175",
   "mechanism_assigned": "k-means++/weighted random seeding + farthest-first spread + Lloyd/centroid refinement",
   "feature_list": "lloyd/kmeans assignment-update; farthest-first/Gonzalez; kmeans++ probabilistic; noise/restart/annealing; local refinement"

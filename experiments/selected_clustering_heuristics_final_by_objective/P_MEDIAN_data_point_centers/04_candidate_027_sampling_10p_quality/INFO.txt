@@ -1,3 +1,4 @@
+Report ID: P4
 p-median sampling candidate 27
 
 Objective folder: P_MEDIAN_data_point_centers
@@ -15,5 +16,5 @@ Mechanism assigned: farthest-first spread + Lloyd/centroid refinement + sampling
 Features: lloyd/kmeans assignment-update; farthest-first/Gonzalez; PAM/swap medoid local search; sampling/coreset; local refinement
 
 Original code path: Runs_1/Runs/Runs semaine 13/1 - 10p Run B 1+1/__unzipped__llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/llm_clustering_runB_pmedian_sampling_10p_pmedian_minimal_prompt_20260511_140111/codes/iter_027_704642fd2acc7b065e6b.py
-Copied code file: iter_027_704642fd2acc7b065e6b.py
+Copied code file: P4_iter_027_704642fd2acc7b065e6b.py
 Code SHA1: f704b60826dbd0273b023d81da5c619e79e03d23

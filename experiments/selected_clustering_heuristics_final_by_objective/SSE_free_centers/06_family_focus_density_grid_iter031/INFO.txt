@@ -1,3 +1,4 @@
+Report ID: S6
 Run A FF density-grid iter31
 
 Objective folder: SSE_free_centers
@@ -24,6 +25,6 @@ Mechanism assigned: density-grid/local-density initialization followed by bounde
 Features: density_grid|family_focus|lloyd_refinement
 
 Original code path inside archive: TM/llm-clustering-runs/llm_clustering_unified_ABC_sse_20260526_142908/codes/iter_031_c3bc5e9006544bf79253.py
-Copied code file: iter_031_c3bc5e9006544bf79253.py
+Copied code file: S6_iter_031_c3bc5e9006544bf79253.py
 Copied detail files: search_detail_iter_031.csv, probe_detail_iter_031.csv
 Code SHA1: a21ec88885f6fadd065159ae868efce167c5bab9
