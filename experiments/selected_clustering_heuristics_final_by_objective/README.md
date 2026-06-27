@@ -20,7 +20,7 @@ selected_clustering_heuristics_final_by_objective/
     └── ...
 ```
 
-Each Python file defines the required `ClusteringHeuristic` class for the corresponding selected method. The file prefix is the report ID: `S1`--`S10` for SSE, `P1`--`P8` for data-point p-median, and `R1`--`R8` for radius-volume.
+Each Python file defines the required `ClusteringHeuristic` class for the corresponding selected method. The file prefix is the report ID: `S1`--`S8` for SSE, `P1`--`P6` for data-point p-median, and `R1`--`R7` for radius-volume.
 
 ## Index file
 
@@ -30,36 +30,30 @@ Each Python file defines the required `ClusteringHeuristic` class for the corres
 
 ### SSE_free_centers
 
-- `S1` — `SSE_free_centers/S1_heuristic.py`: Best SSE quality among selected runs.
-- `S2` — `SSE_free_centers/S2_heuristic.py`: Almost same quality as candidate 37, faster.
-- `S3` — `SSE_free_centers/S3_heuristic.py`: Best speed/quality compromise; noisy annealed hybrid k-means style.
-- `S4` — `SSE_free_centers/S4_heuristic.py`: Different continuous-center gradient/momentum mechanism.
-- `S5` — `SSE_free_centers/S5_heuristic.py`: Scalable sample-based SSE representative.
-- `S6` — `SSE_free_centers/S6_heuristic.py`: Best Run A family-focus density-grid/local-density candidate; strong search/probe behavior and fast runtime.
-- `S7` — `SSE_free_centers/S7_heuristic.py`: Strong incremental farthest-first relocation candidate; useful as a quality/runtime comparison for the SSE family.
-- `S8` — `SSE_free_centers/S8_heuristic.py`: Fully valid and fast recursive partitioning candidate; weaker than the partial variant but cleaner for evaluation.
-- `S9` — `SSE_free_centers/S9_heuristic.py`: Weaker but mechanistically interesting density-peak/local-density discovery candidate for reporting diversity.
-- `S10` — `SSE_free_centers/S10_heuristic.py`: Spatially dispersed/spread discovery candidate; useful as a non-recursive control-family representative.
+- `S1` — `SSE_free_centers/S1_heuristic.py`: adaptive farthest-first seeding with hybrid refinement.
+- `S2` — `SSE_free_centers/S2_heuristic.py`: noise-perturbed center refinement.
+- `S3` — `SSE_free_centers/S3_heuristic.py`: gradient/momentum-style center updates.
+- `S4` — `SSE_free_centers/S4_heuristic.py`: sampled-center initialization under a 60p outer sampling regime.
+- `S5` — `SSE_free_centers/S5_heuristic.py`: density-grid center proposal.
+- `S6` — `SSE_free_centers/S6_heuristic.py`: fast recursive geometric partitioning.
+- `S7` — `SSE_free_centers/S7_heuristic.py`: density-peak center selection.
+- `S8` — `SSE_free_centers/S8_heuristic.py`: spatial dispersion center initialization.
 
 ### P_MEDIAN_data_point_centers
 
-- `P1` — `P_MEDIAN_data_point_centers/P1_heuristic.py`: Best fully valid 24/24 nucleation candidate.
-- `P2` — `P_MEDIAN_data_point_centers/P2_heuristic.py`: Best raw p-median score; one invalid case in source evaluation.
-- `P3` — `P_MEDIAN_data_point_centers/P3_heuristic.py`: Robust PAM/medoid-style candidate; 81/81 valid.
-- `P4` — `P_MEDIAN_data_point_centers/P4_heuristic.py`: Best-quality 10p sample-based p-median representative.
-- `P5` — `P_MEDIAN_data_point_centers/P5_heuristic.py`: Fast 10p sample-based p-median representative.
-- `P6` — `P_MEDIAN_data_point_centers/P6_heuristic.py`: Best Run B historical-family-avoidance candidate; strong geometric/Voronoi medoid refinement with selected data-point centers.
-- `P7` — `P_MEDIAN_data_point_centers/P7_heuristic.py`: Weak but useful family-focus control for spread/farthest-medoid construction.
-- `P8` — `P_MEDIAN_data_point_centers/P8_heuristic.py`: Weak but useful family-focus representative of density-neighborhood medoid construction.
+- `P1` — `P_MEDIAN_data_point_centers/P1_heuristic.py`: medoid selection under a 10p outer sampling regime.
+- `P2` — `P_MEDIAN_data_point_centers/P2_heuristic.py`: farthest-first medoids with weighted replacement and final mean-snap search.
+- `P3` — `P_MEDIAN_data_point_centers/P3_heuristic.py`: coarse-to-fine medoid construction with local in-cluster replacement.
+- `P4` — `P_MEDIAN_data_point_centers/P4_heuristic.py`: Voronoi-style medoid refinement.
+- `P5` — `P_MEDIAN_data_point_centers/P5_heuristic.py`: spread-control medoid construction with custom coverage score.
+- `P6` — `P_MEDIAN_data_point_centers/P6_heuristic.py`: density-neighbourhood medoid construction.
 
 ### RADIUS_VOLUME_data_point_centers
 
-- `R1` — `RADIUS_VOLUME_data_point_centers/R1_heuristic.py`: Best current-reference Run C d=4 historical-avoidance candidate; distance/farthest medoid selection plus radius-aware minimax repair.
-- `R2` — `RADIUS_VOLUME_data_point_centers/R2_heuristic.py`: Interesting recursive/high-radius repair historical candidate for the d=4 Run C setting.
-- `R3` — `RADIUS_VOLUME_data_point_centers/R3_heuristic.py`: Nucleation/radius-volume reduction representative from historical avoidance; weaker but useful for family coverage.
-- `R4` — `RADIUS_VOLUME_data_point_centers/R4_heuristic.py`: Fast family-focus high-radius cluster splitting/repair representative; weak search but useful probe/family signal.
-- `R5` — `RADIUS_VOLUME_data_point_centers/R5_heuristic.py`: Regular-mode lower-dimensional radius-covering candidate; useful to contrast d=2/d=3 behavior with d=4 difficulty.
-- `R6` — `RADIUS_VOLUME_data_point_centers/R6_heuristic.py`: Regular-mode lower-dimensional recursive/radius-aware medoid replacement candidate.
-- `R7` — `RADIUS_VOLUME_data_point_centers/R7_heuristic.py`: Regular-mode lower-dimensional active-center radius repair; useful as d=3-good/d=4-fragile example.
-- `R8` — `RADIUS_VOLUME_data_point_centers/R8_heuristic.py`: Regular-mode lower-dimensional nucleation/volume-reduction candidate; useful for Run C family coverage.
-
+- `R1` — `RADIUS_VOLUME_data_point_centers/R1_heuristic.py`: farthest-first medoid selection with radius-prioritized refinement.
+- `R2` — `RADIUS_VOLUME_data_point_centers/R2_heuristic.py`: diverse farthest-first initialization with high-radius medoid replacement.
+- `R3` — `RADIUS_VOLUME_data_point_centers/R3_heuristic.py`: k-means++-style initialization with radius-contribution medoid refinement.
+- `R4` — `RADIUS_VOLUME_data_point_centers/R4_heuristic.py`: random initialization with dominant-radius probe repair.
+- `R5` — `RADIUS_VOLUME_data_point_centers/R5_heuristic.py`: high-radius medoid replacement with radius-conditioned centroid adjustment.
+- `R6` — `RADIUS_VOLUME_data_point_centers/R6_heuristic.py`: largest-radius medoid repair with merge and post-repair passes.
+- `R7` — `RADIUS_VOLUME_data_point_centers/R7_heuristic.py`: k-means++-like radius-volume local search.

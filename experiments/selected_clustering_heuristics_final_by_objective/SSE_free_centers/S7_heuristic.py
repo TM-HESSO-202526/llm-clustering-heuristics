@@ -2,52 +2,45 @@ import numpy as np
 
 class ClusteringHeuristic:
     def __call__(self, X, p, rng=None):
-        # Main mechanism: Hierarchical partition-based clustering
-        # This algorithm uses a hierarchical approach to divide the data into partitions and then find the optimal centers.
-        
+        # Intended mechanism family: Clustering via local density peaks
+        # This method identifies clusters as regions of high density in the data
+
         if rng is None:
             rng = np.random.default_rng()
-        
-        # Initialize the set of centers
-        centers = []
-        
-        # Repeat until we have p centers
-        for _ in range(p):
-            # If there are no centers, choose a random point
-            if not centers:
-                center = X[rng.integers(len(X))]
-            else:
-                # Find the point that is farthest from the existing centers
-                distances = np.linalg.norm(X[:, np.newaxis] - np.array(centers), axis=2)
-                min_distances = np.min(distances, axis=1)
-                center_index = np.argmax(min_distances)
-                center = X[center_index]
-            
-            # Add the center to the set of centers
-            centers.append(center)
-            
-            # Divide the data space into partitions
-            partitions = self.divide_partitions(X, centers)
-            
-            # Update the center to be the mean of the points in the partition
-            for i in range(len(centers)):
-                partition = partitions[i]
-                if len(partition) > 0:
-                    centers[i] = np.mean(partition, axis=0)
-        
-        # Return the centers
-        return np.array(centers)
 
-    def divide_partitions(self, X, centers):
-        # Divide the data space into partitions based on the centers
-        partitions = [[] for _ in range(len(centers))]
-        for point in X:
-            min_distance = np.inf
-            min_index = -1
-            for i, center in enumerate(centers):
-                distance = np.linalg.norm(point - center)
-                if distance < min_distance:
-                    min_distance = distance
-                    min_index = i
-            partitions[min_index].append(point)
-        return partitions
+        n, d = X.shape
+
+        # Compute the distance matrix
+        distances = np.linalg.norm(X[:, np.newaxis] - X, axis=2)
+
+        # Compute the local density of each point
+        densities = np.sum(np.exp(-((distances / np.mean(distances)) ** 2)), axis=1)
+
+        # Compute the minimum distance to a higher-density point
+        delta = np.inf * np.ones(n)
+        for i in range(n):
+            for j in range(n):
+                if densities[j] > densities[i]:
+                    delta[i] = min(delta[i], distances[i, j])
+
+        # Identify the points with the highest density and minimum distance to a higher-density point
+        peak_indices = np.argsort(densities * delta)[::-1]
+
+        # Select the top p peak indices as the initial centers
+        centers = X[peak_indices[:p]]
+
+        # Perform a final refinement step to minimize the sum of squared Euclidean distances
+        for _ in range(10):  # Perform 10 iterations of refinement
+            # Assign each point to the nearest center
+            labels = np.argmin(np.linalg.norm(X[:, np.newaxis] - centers, axis=2), axis=1)
+
+            # Compute new centers as the mean of points in each cluster
+            new_centers = np.array([X[labels == i].mean(axis=0) for i in range(p)])
+
+            # Check for convergence
+            if np.all(centers == new_centers):
+                break
+
+            centers = new_centers
+
+        return centers

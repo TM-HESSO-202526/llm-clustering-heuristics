@@ -107,7 +107,7 @@ The exact clustering prompt blocks referenced by the report are provided in:
 docs/prompt_reference/exact_clustering_prompt_blocks.ipynb
 ```
 
-These files document the system prompt, objective-specific task prompts, required interface, historical family-avoidance instructions, and family-focus prompt material used during generation.
+These files document the system prompt, objective-specific task prompts, and required interface used during generation.
 
 ## Data inputs
 

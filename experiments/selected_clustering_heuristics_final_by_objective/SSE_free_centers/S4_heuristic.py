@@ -4,37 +4,53 @@ class ClusteringHeuristic:
     def __call__(self, X, p, rng=None):
         if rng is None:
             rng = np.random.default_rng()
-        
-        def sse(centers, X):
-            distances = np.linalg.norm(X[:, np.newaxis] - centers, axis=2)
-            return np.sum(np.min(distances, axis=1))
 
-        def gradient_descent(centers, X, learning_rate=0.1, iterations=100, momentum=0.9, regularization=0.01):
-            velocity = np.zeros_like(centers)
-            learning_rate_schedule = np.linspace(learning_rate, 0.01, iterations)
-            for i in range(iterations):
-                distances = np.linalg.norm(X[:, np.newaxis] - centers, axis=2)
-                assignments = np.argmin(distances, axis=1)
-                for j in range(p):
-                    assigned_points = X[assignments == j]
-                    if len(assigned_points) > 0:
-                        gradient = np.mean(assigned_points, axis=0) - centers[j] + regularization * centers[j]
-                        velocity[j] = momentum * velocity[j] + learning_rate_schedule[i] * gradient
-                        centers[j] += velocity[j]
-            return centers
+        m, d = X.shape
+        if p > m:
+            # Sample points with replacement to create p centers
+            idx = rng.choice(m, size=p, replace=True)
+            return X[idx]
 
-        def hierarchical_initialization(X, p, rng):
-            if p == 1:
-                return np.mean(X, axis=0).reshape(1, -1)
+        # Initialize centers by choosing random points from the sample
+        # with a higher probability for points farther away from the existing centers
+        centers = []
+        for _ in range(p):
+            if not centers:
+                idx = rng.choice(m)
+                centers.append(X[idx])
             else:
-                initial_centers = np.array([np.mean(X, axis=0)])
-                for _ in range(p - 1):
-                    distances = np.linalg.norm(X[:, np.newaxis] - initial_centers, axis=2)
-                    farthest_points = np.argmax(np.min(distances, axis=1))
-                    initial_centers = np.vstack((initial_centers, X[farthest_points]))
-                return initial_centers
+                centers_array = np.array(centers)
+                dist = np.linalg.norm(X[:, np.newaxis] - centers_array, axis=2) ** 2
+                dist = np.min(dist, axis=1)
+                probabilities = dist / np.sum(dist)
+                idx = rng.choice(m, p=probabilities)
+                centers.append(X[idx])
 
-        initial_centers = hierarchical_initialization(X, p, rng)
-        centers = gradient_descent(initial_centers, X)
+        # Perform a small bounded refinement on the sample
+        for _ in range(15):  # Increased iterations for convergence
+            # Assign each point to the nearest center
+            dist = np.linalg.norm(X[:, np.newaxis] - np.array(centers), axis=2) ** 2
+            labels = np.argmin(dist, axis=1)
 
-        return centers
+            # Compute the mean of each cluster
+            new_centers = []
+            for i in range(p):
+                cluster_points = X[labels == i]
+                if len(cluster_points) > 0:
+                    new_centers.append(cluster_points.mean(axis=0))
+                else:
+                    # If a cluster is empty, reinitialize the center
+                    idx = rng.choice(m)
+                    new_centers.append(X[idx])
+
+            # Stop if centers do not change
+            if np.allclose(np.array(centers), np.array(new_centers)):
+                break
+
+            centers = new_centers
+
+        # Additional step: perturb the centers slightly to escape local minima
+        for i in range(p):
+            centers[i] += rng.normal(0, 0.1, size=d)
+
+        return np.array(centers)

@@ -2,68 +2,51 @@ import numpy as np
 
 class ClusteringHeuristic:
     def __call__(self, X, p, rng=None):
-        """
-        Enhanced Sample-Based p-Median Heuristic with Adaptive Farthest Point Clustering and Voronoi Refining.
+        # Intended mechanism family: Geometric-Medoid Clustering with Voronoi Refinement
+        # This method constructs an initial set of medoids using geometric reasoning and then refines them using Voronoi partitioning.
 
-        Parameters:
-        X (numpy array): Sample S of shape (m, d)
-        p (int): Number of centers
-        rng (numpy.random.Generator, optional): Random number generator
-
-        Returns:
-        centers (numpy array): p centers of shape (p, d)
-        """
-        m, d = X.shape
+        n, d = X.shape
         if rng is None:
             rng = np.random.default_rng()
 
-        # Initialize with multiple random centers and select the best
-        num_trials = min(5, p)
-        best_centers = None
-        best_min_dist_sum = np.inf
-
-        for _ in range(num_trials):
-            centers = np.array([X[rng.integers(m)]])
-            min_dist = np.linalg.norm(X - centers[0], axis=1)
-
-            # Greedily add centers until p is reached
-            for _ in range(1, p):
-                # Calculate distances from each point to its nearest center
-                distances = np.linalg.norm(X[:, np.newaxis] - centers, axis=2)
-                min_dist = np.min(distances, axis=1)
-
-                # Select the point with the maximum minimum distance as the next center
-                next_center_idx = np.argmax(min_dist)
-                centers = np.vstack((centers, X[next_center_idx]))
-
-                # Update min_dist to ensure the newly added center is considered
-                new_dist = np.linalg.norm(X - centers[-1], axis=1)
-                min_dist = np.minimum(min_dist, new_dist)
-
-            # Calculate the sum of minimum distances
-            min_dist_sum = np.sum(min_dist)
-
-            # Update the best centers if the current sum is smaller
-            if min_dist_sum < best_min_dist_sum:
-                best_min_dist_sum = min_dist_sum
-                best_centers = centers
-
-        # Voronoi refining
-        centers = best_centers
+        # Initialize medoids geometrically
+        medoids = []
         for _ in range(p):
-            # Assign each point to its nearest center
-            assignments = np.argmin(np.linalg.norm(X[:, np.newaxis] - centers, axis=2), axis=1)
+            if not medoids:
+                # Choose the point with the maximum average distance to all other points
+                dists = np.linalg.norm(X[:, None] - X, axis=2)
+                np.fill_diagonal(dists, np.inf)
+                avg_dists = np.mean(dists, axis=1)
+                medoid_idx = np.argmax(avg_dists)
+                medoids.append(X[medoid_idx])
+            else:
+                # Choose the point with the maximum minimum distance to the existing medoids
+                min_dists = np.linalg.norm(X[:, None] - np.array(medoids), axis=2).min(axis=1)
+                medoid_idx = np.argmax(min_dists)
+                medoids.append(X[medoid_idx])
 
-            # Update centers as the mean of their assigned points
-            new_centers = np.array([X[assignments == i].mean(axis=0) if np.any(assignments == i) else centers[i] for i in range(p)])
+        # Compute Voronoi partitioning
+        dists = np.linalg.norm(X[:, None] - np.array(medoids), axis=2)
+        labels = np.argmin(dists, axis=1)
+
+        # Iteratively update medoids based on Voronoi refinement
+        for _ in range(10):  # Limited iterations for scalability
+            new_medoids = []
+            for i in np.unique(labels):
+                cluster_points = X[labels == i]
+                # Choose the point with the minimum average distance to all other points in the cluster
+                avg_dists = np.mean(np.linalg.norm(cluster_points[:, None] - cluster_points, axis=2), axis=1)
+                new_medoid_idx = np.argmin(avg_dists)
+                new_medoids.append(cluster_points[new_medoid_idx])
 
             # Check for convergence
-            if np.all(np.linalg.norm(centers - new_centers, axis=1) < 1e-6):
+            if np.all(np.array(new_medoids) == np.array(medoids)):
                 break
 
-            centers = new_centers
+            medoids = new_medoids
 
-        # Select p points from X that are closest to the refined centers
-        final_centers = np.array([X[np.argmin(np.linalg.norm(X - center, axis=1))] for center in centers])
+            # Compute Voronoi partitioning
+            dists = np.linalg.norm(X[:, None] - np.array(medoids), axis=2)
+            labels = np.argmin(dists, axis=1)
 
-        return final_centers
+        return np.array(medoids)

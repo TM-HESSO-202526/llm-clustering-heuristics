@@ -2,54 +2,66 @@ import numpy as np
 
 class ClusteringHeuristic:
     def __call__(self, X, p, rng=None):
-        """
-        Enhanced Sample-Based p-Median Heuristic with Iterative Farthest Point Clustering and Voronoi Refining.
-
-        Parameters:
-        X (numpy array): Sample S of shape (m, d)
-        p (int): Number of centers
-        rng (numpy.random.Generator, optional): Random number generator
-
-        Returns:
-        centers (numpy array): p centers of shape (p, d)
-        """
-        m, d = X.shape
         if rng is None:
             rng = np.random.default_rng()
-
-        # Initialize with a random center
-        centers = np.array([X[rng.integers(m)]])
+        
+        n, d = X.shape
+        centers = np.zeros((p, d))
+        
+        # Initialize the first center randomly
+        centers[0] = X[rng.choice(n)]
+        
         min_dist = np.linalg.norm(X - centers[0], axis=1)
-
-        # Greedily add centers until p is reached
-        for _ in range(1, p):
-            # Calculate distances from each point to its nearest center
-            distances = np.linalg.norm(X[:, np.newaxis] - centers, axis=2)
-            min_dist = np.min(distances, axis=1)
-
-            # Select the point with the maximum minimum distance as the next center
-            next_center_idx = np.argmax(min_dist)
-            centers = np.vstack((centers, X[next_center_idx]))
-
-            # Update min_dist to ensure the newly added center is considered
-            new_dist = np.linalg.norm(X - centers[-1], axis=1)
-            min_dist = np.minimum(min_dist, new_dist)
-
-        # Iterative Voronoi refining
-        for _ in range(5 * p):
-            # Assign each point to its nearest center
-            assignments = np.argmin(np.linalg.norm(X[:, np.newaxis] - centers, axis=2), axis=1)
-
-            # Update centers as the mean of their assigned points
-            new_centers = np.array([X[assignments == i].mean(axis=0) if np.any(assignments == i) else centers[i] for i in range(p)])
-
-            # Check for convergence
-            if np.all(np.linalg.norm(centers - new_centers, axis=1) < 1e-6):
-                break
-
-            centers = new_centers
-
-        # Select p points from X that are closest to the refined centers
-        final_centers = np.array([X[np.argmin(np.linalg.norm(X - center, axis=1))] for center in centers])
-
-        return final_centers
+        
+        for i in range(1, p):
+            # Calculate the farthest point from the existing centers
+            farthest_point_idx = np.argmax(min_dist)
+            farthest_point = X[farthest_point_idx]
+            
+            # Calculate the coverage score for each point
+            coverage_scores = np.zeros(n)
+            for j in range(n):
+                point = X[j]
+                dist_to_farthest = np.linalg.norm(point - farthest_point)
+                dist_to_closest_center = np.min(np.linalg.norm(point - centers[:i], axis=1))
+                if dist_to_farthest == 0:
+                    coverage_scores[j] = 0
+                else:
+                    coverage_scores[j] = dist_to_farthest * (1 - dist_to_closest_center / (dist_to_farthest + 1e-6)) * (1 - np.sum(np.linalg.norm(centers[:i] - point, axis=1)) / (i + 1e-6))
+            
+            # Select the point with the highest coverage score as the new center
+            new_center_idx = np.argmax(coverage_scores)
+            centers[i] = X[new_center_idx]
+            
+            # Update the minimum distances
+            dist_to_new_center = np.linalg.norm(X - centers[i], axis=1)
+            min_dist = np.minimum(min_dist, dist_to_new_center)
+        
+        # Apply bounded selected-point repair
+        for i in range(p):
+            # Calculate the distance from each point to the current center
+            dist_to_center = np.linalg.norm(X - centers[i], axis=1)
+            
+            # Find the point with the minimum distance to the current center
+            closest_point_idx = np.argmin(dist_to_center)
+            closest_point = X[closest_point_idx]
+            
+            # Update the center if the closest point is not the current center
+            if not np.array_equal(closest_point, centers[i]):
+                centers[i] = closest_point
+        
+        # Additional bounded refinement
+        for _ in range(2):  # Perform 2 iterations of refinement
+            for i in range(p):
+                # Calculate the distance from each point to the current center
+                dist_to_center = np.linalg.norm(X - centers[i], axis=1)
+                
+                # Find the point with the minimum distance to the current center
+                closest_point_idx = np.argmin(dist_to_center)
+                closest_point = X[closest_point_idx]
+                
+                # Update the center if the closest point is not the current center
+                if not np.array_equal(closest_point, centers[i]):
+                    centers[i] = closest_point
+        
+        return centers

@@ -4,143 +4,116 @@ class ClusteringHeuristic:
     def __call__(self, X, p, rng=None):
         if rng is None:
             rng = np.random.default_rng()
-        
-        n, d = X.shape
-        
-        # Initial centers are chosen randomly from data points
-        centers = X[rng.choice(n, size=p, replace=False)]
-        
-        for _ in range(100):  # Perform 100 iterations of refinement
+
+        # Initialize centers with k-means++ like initialization
+        centers = X[rng.choice(X.shape[0], size=1, replace=False)]
+        for _ in range(p - 1):
+            distances = np.linalg.norm(X[:, np.newaxis] - centers, axis=2)
+            min_distances = np.min(distances, axis=1)
+            probabilities = min_distances / np.sum(min_distances)
+            new_center_index = rng.choice(X.shape[0], p=probabilities)
+            centers = np.vstack((centers, X[new_center_index]))
+
+        for _ in range(500):  # Increased iteration limit
             # Assign each point to the nearest center
             distances = np.linalg.norm(X[:, np.newaxis] - centers, axis=2)
-            assignments = np.argmin(distances, axis=1)
-            
+            labels = np.argmin(distances, axis=1)
+
             # Compute the radius of each cluster
-            radii = np.zeros(p)
-            for i in range(p):
-                cluster_points = X[assignments == i]
-                if cluster_points.size > 0:
-                    radii[i] = np.max(np.linalg.norm(cluster_points - centers[i], axis=1))
-            
-            # Identify the cluster with the largest radius
-            max_radius_index = np.argmax(radii)
-            
-            # Split the cluster with the largest radius into two new clusters
-            if radii[max_radius_index] > 0:
-                cluster_points = X[assignments == max_radius_index]
-                distances_to_center = np.linalg.norm(cluster_points - centers[max_radius_index], axis=1)
-                farthest_point_index = np.argmax(distances_to_center)
-                farthest_point = cluster_points[farthest_point_index]
-                
-                # Replace the old center with the point that is farthest from the center
-                # and has the minimum radius
-                min_radius = np.inf
-                best_point = None
-                for point in cluster_points:
-                    distances_to_point = np.linalg.norm(cluster_points - point, axis=1)
-                    radius = np.max(distances_to_point)
-                    if radius < min_radius:
-                        min_radius = radius
-                        best_point = point
-                
-                # Replace the old center with the new center
-                new_center = best_point
-                
-                # Check if the new center is too close to another center
-                too_close = False
-                for i in range(p):
-                    if i != max_radius_index and np.linalg.norm(new_center - centers[i]) < radii[i] / 2:
-                        too_close = True
+            radii = np.zeros(centers.shape[0])
+            for j in range(centers.shape[0]):
+                points_in_cluster = X[labels == j]
+                if points_in_cluster.size > 0:
+                    radii[j] = np.max(np.linalg.norm(points_in_cluster - centers[j], axis=1))
+
+            # Identify the cluster with the largest radius^d contribution
+            d = X.shape[1]
+            radius_contributions = radii ** d
+            max_contribution_indices = np.argsort(radius_contributions)[::-1]
+
+            # Replace the center of the cluster with the largest radius^d contribution
+            for max_contribution_index in max_contribution_indices[:20]:  # Replace top 20 clusters
+                points_in_max_cluster = X[labels == max_contribution_index]
+                if points_in_max_cluster.size > 0:
+                    # Local search to find a better center
+                    best_center_index = -1
+                    best_radius = np.inf
+                    for i in range(points_in_max_cluster.shape[0]):
+                        new_center = points_in_max_cluster[i]
+                        new_distances = np.linalg.norm(points_in_max_cluster - new_center, axis=1)
+                        new_radius = np.max(new_distances)
+                        if new_radius < best_radius:
+                            best_radius = new_radius
+                            best_center_index = i
+                    if best_center_index != -1:
+                        centers[max_contribution_index] = points_in_max_cluster[best_center_index]
+
+            # Neighborhood exploration to further improve the centers
+            for _ in range(50):  # Increased neighborhood exploration iterations
+                i, j = rng.choice(centers.shape[0], size=2, replace=False)
+                points_in_i = X[labels == i]
+                points_in_j = X[labels == j]
+                if points_in_i.size > 0 and points_in_j.size > 0:
+                    new_center_i = points_in_i[rng.choice(points_in_i.shape[0])]
+                    new_center_j = points_in_j[rng.choice(points_in_j.shape[0])]
+                    new_distances_i = np.linalg.norm(points_in_i - new_center_i, axis=1)
+                    new_radius_i = np.max(new_distances_i)
+                    new_distances_j = np.linalg.norm(points_in_j - new_center_j, axis=1)
+                    new_radius_j = np.max(new_distances_j)
+                    if new_radius_i < radii[i] and new_radius_j < radii[j]:
+                        centers[i] = new_center_i
+                        centers[j] = new_center_j
+                        radii[i] = new_radius_i
+                        radii[j] = new_radius_j
+
+            # Improved radius reduction
+            for _ in range(50):  # Increased radius reduction iterations
+                for i in range(centers.shape[0]):
+                    points_in_i = X[labels == i]
+                    if points_in_i.size > 0:
+                        new_center = np.mean(points_in_i, axis=0)
+                        new_distances_i = np.linalg.norm(points_in_i - new_center, axis=1)
+                        new_radius_i = np.max(new_distances_i)
+                        if new_radius_i < radii[i]:
+                            centers[i] = new_center
+                            radii[i] = new_radius_i
+
+            # Cluster splitting
+            for i in range(centers.shape[0]):
+                points_in_i = X[labels == i]
+                if points_in_i.size > 0:
+                    # Find the farthest point from the center
+                    farthest_point = points_in_i[np.argmax(np.linalg.norm(points_in_i - centers[i], axis=1))]
+                    # Split the cluster into two
+                    new_center = farthest_point
+                    new_distances_i = np.linalg.norm(points_in_i - new_center, axis=1)
+                    new_radius_i = np.max(new_distances_i)
+                    if new_radius_i < radii[i] * 0.6:
+                        centers = np.vstack((centers, new_center))
+                        radii = np.append(radii, new_radius_i)
+                        # Reassign points to the new cluster
+                        distances = np.linalg.norm(X[:, np.newaxis] - centers, axis=2)
+                        labels = np.argmin(distances, axis=1)
+                        # Update radii
+                        radii = np.zeros(centers.shape[0])
+                        for j in range(centers.shape[0]):
+                            points_in_cluster = X[labels == j]
+                            if points_in_cluster.size > 0:
+                                radii[j] = np.max(np.linalg.norm(points_in_cluster - centers[j], axis=1))
                         break
-                
-                if not too_close:
-                    centers[max_radius_index] = new_center
-                
-                else:
-                    # Replace the old center with the point that is farthest from all other centers
-                    distances_to_other_centers = np.min(np.linalg.norm(X[:, np.newaxis] - centers, axis=2), axis=1)
-                    farthest_point = X[np.argmax(distances_to_other_centers)]
-                    centers[max_radius_index] = farthest_point
-            
-            # Merge two clusters with the smallest radii
-            if p > 1:
-                min_radius_indices = np.argsort(radii)[:2]
-                if radii[min_radius_indices[0]] < radii[min_radius_indices[1]] / 2:
-                    # Merge the two clusters
-                    centers[min_radius_indices[0]] = X[np.argmin(np.linalg.norm(X - np.mean(centers[min_radius_indices], axis=0), axis=1))]
-                    centers = np.delete(centers, min_radius_indices[1], axis=0)
-                    p -= 1
-        
-        # Refine the centers by moving them to the point with the minimum radius
-        for _ in range(10):
-            for i in range(p):
-                cluster_points = X[np.argmin(np.linalg.norm(X[:, np.newaxis] - centers, axis=2), axis=1) == i]
-                if cluster_points.size > 0:
-                    distances_to_center = np.linalg.norm(cluster_points - centers[i], axis=1)
-                    min_radius_index = np.argmin(distances_to_center)
-                    min_radius_point = cluster_points[min_radius_index]
-                    centers[i] = min_radius_point
-        
-        # Ensure p centers
-        if p < len(centers):
-            centers = centers[:p]
-        elif p > len(centers):
-            remaining_points = X[~np.isin(X, centers).all(axis=1)]
-            if len(remaining_points) > 0:
-                new_centers = remaining_points[:p - len(centers)]
-                centers = np.vstack((centers, new_centers))
-        
-        # Additional refinement step to improve the radius of the clusters
-        for _ in range(10):
-            for i in range(p):
-                cluster_points = X[np.argmin(np.linalg.norm(X[:, np.newaxis] - centers, axis=2), axis=1) == i]
-                if cluster_points.size > 0:
-                    distances_to_center = np.linalg.norm(cluster_points - centers[i], axis=1)
-                    max_distance_index = np.argmax(distances_to_center)
-                    max_distance_point = cluster_points[max_distance_index]
-                    new_center = X[np.argmin(np.linalg.norm(X - (centers[i] + max_distance_point) / 2, axis=1))]
-                    centers[i] = new_center
-        
-        # New refinement step: try to replace each center with a point that minimizes the radius
-        for _ in range(10):
-            for i in range(p):
-                cluster_points = X[np.argmin(np.linalg.norm(X[:, np.newaxis] - centers, axis=2), axis=1) == i]
-                if cluster_points.size > 0:
-                    min_radius = np.inf
-                    best_point = None
-                    for point in cluster_points:
-                        distances_to_point = np.linalg.norm(cluster_points - point, axis=1)
-                        radius = np.max(distances_to_point)
-                        if radius < min_radius:
-                            min_radius = radius
-                            best_point = point
-                    centers[i] = best_point
-        
-        # Another refinement step to reduce the largest radius
-        for _ in range(10):
-            radii = np.zeros(p)
-            for i in range(p):
-                cluster_points = X[np.argmin(np.linalg.norm(X[:, np.newaxis] - centers, axis=2), axis=1) == i]
-                if cluster_points.size > 0:
-                    radii[i] = np.max(np.linalg.norm(cluster_points - centers[i], axis=1))
-            max_radius_index = np.argmax(radii)
-            cluster_points = X[np.argmin(np.linalg.norm(X[:, np.newaxis] - centers, axis=2), axis=1) == max_radius_index]
-            distances_to_center = np.linalg.norm(cluster_points - centers[max_radius_index], axis=1)
-            max_distance_index = np.argmax(distances_to_center)
-            max_distance_point = cluster_points[max_distance_index]
-            new_center = X[np.argmin(np.linalg.norm(X - (centers[max_radius_index] + max_distance_point) / 2, axis=1))]
-            centers[max_radius_index] = new_center
-        
-        # Active center refinement step
-        for _ in range(10):
-            for i in range(p):
-                cluster_points = X[np.argmin(np.linalg.norm(X[:, np.newaxis] - centers, axis=2), axis=1) == i]
-                if cluster_points.size > 0:
-                    distances_to_center = np.linalg.norm(cluster_points - centers[i], axis=1)
-                    max_distance_index = np.argmax(distances_to_center)
-                    max_distance_point = cluster_points[max_distance_index]
-                    new_center = X[np.argmin(np.linalg.norm(X - (centers[i] + max_distance_point) / 2, axis=1))]
-                    if np.linalg.norm(new_center - centers[i]) > np.mean(distances_to_center):
-                        centers[i] = new_center
-        
+
+        # Remove excess centers
+        while centers.shape[0] > p:
+            distances = np.linalg.norm(X[:, np.newaxis] - centers, axis=2)
+            labels = np.argmin(distances, axis=1)
+            counts = np.bincount(labels, minlength=centers.shape[0])
+            min_count_index = np.argmin(counts)
+            centers = np.delete(centers, min_count_index, axis=0)
+
+        # Ensure centers are data points
+        for i in range(centers.shape[0]):
+            distances = np.linalg.norm(X - centers[i], axis=1)
+            min_distance_index = np.argmin(distances)
+            centers[i] = X[min_distance_index]
+
         return centers
